@@ -1,0 +1,18 @@
+{
+  "name": "droplet-darwin-x64",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "droplet.darwin-x64.node",
+  "files": [
+    "droplet.darwin-x64.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}
