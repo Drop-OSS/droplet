@@ -2,30 +2,18 @@ stages:
  - build
  - publish
 
-linux-build:
+build:
   stage: build
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
+  parallel:
+    matrix:
+      - TARGET: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, x86_64-apple-darwin]
   script:
-    - rustup toolchain install stable-x86_64-unknown-linux-gnu
+    - rustup toolchain install stable-${TARGET}
     - apt-get update -y
     - apt-get install yarnpkg -y
     - yarnpkg
-    - yarnpkg build --target x86_64-unknown-linux-gnu
-  artifacts:
-    paths:
-      - index.js
-      - index.d.ts
-      - droplet.*.node
-
-windows-build:
-  stage: build
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
-  script:
-    - rustup toolchain install stable-x86_64-pc-windows-msvc
-    - apt-get update -y
-    - apt-get install yarnpkg -y
-    - yarnpkg
-    - yarnpkg build --target x86_64-pc-windows-msvc
+    - yarnpkg build --target $TARGET
   artifacts:
     paths:
       - index.js
