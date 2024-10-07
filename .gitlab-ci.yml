@@ -16,7 +16,7 @@ build:
     - .parallel-config
   script:
     - rustup target add $TARGET
-    - rustup toolchain install stable-$TARGET
+    - rustup toolchain install nightly-$TARGET
     - cargo install cargo-xwin
     - apt-get update -y
     - apt-get install yarnpkg llvm clang -y
