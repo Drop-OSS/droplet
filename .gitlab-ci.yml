@@ -11,13 +11,8 @@ build:
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
           - x86_64-apple-darwin
-        PACKAGES:
-          - ""
-          - "cargo-xwin"
-          - ""
   script:
     - rustup target add $TARGET
-    - cargo install $PACKAGES
     - apt-get update -y
     - apt-get install yarnpkg -y
     - yarnpkg
