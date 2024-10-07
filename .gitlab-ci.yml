@@ -39,3 +39,4 @@ publish:
     - yarn
     - yarn artifacts
     - ls -R ./npm
+    - npm publish
