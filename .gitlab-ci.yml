@@ -35,7 +35,7 @@ publish:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:21
   script:
     - echo "registry=https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc
-    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
+    - npm config set "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken" ${CI_JOB_TOKEN}
     - yarn
     - yarn artifacts
     - ls -R ./npm
