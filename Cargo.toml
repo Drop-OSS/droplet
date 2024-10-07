@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "2.12.2", default-features = false, features = ["napi4", "async"] }
 napi-derive = "2.12.2"
-xz2 = "0.1.7"
+zstd = "0.13.2"
 rayon = "1.10.0"
 serde = "1.0.210"
 ciborium = "0.2.2"

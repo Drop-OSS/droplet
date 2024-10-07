@@ -8,13 +8,12 @@ use napi::Error;
 use std::{
   collections::HashMap,
   fs::File,
-  io::{self, BufRead, BufReader},
+  io::{BufRead, BufReader},
   os::unix::fs::PermissionsExt,
   path::Path,
   sync::{Arc, Mutex},
 };
 use uuid::Uuid;
-use xz2::bufread::XzEncoder;
 
 pub mod file_utils;
 pub mod manifest;
@@ -24,10 +23,9 @@ extern crate napi_derive;
 
 fn compress(buffer: &[u8], output_path: &Path, chunk_id: Uuid) {
   let chunk_path = output_path.join(chunk_id.to_string() + ".bin");
-  let mut chunk_file = File::create(chunk_path).unwrap();
-  let mut compressor: XzEncoder<&[u8]> = XzEncoder::new(&buffer[..], 6);
+  let chunk_file = File::create_new(chunk_path).unwrap();
 
-  io::copy(&mut compressor, &mut chunk_file).unwrap();
+  zstd::stream::copy_encode(buffer, chunk_file, 9).unwrap();
 }
 
 #[napi]

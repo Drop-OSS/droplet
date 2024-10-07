@@ -197,3 +197,4 @@ Cargo.lock
 *.node
 index.js
 index.d.ts
+test.mjs
