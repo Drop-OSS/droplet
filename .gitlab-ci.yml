@@ -15,7 +15,7 @@ build:
     - rustup toolchain install stable-$TARGET
     - cargo install cargo-xwin
     - apt-get update -y
-    - apt-get install yarnpkg clang -y
+    - apt-get install yarnpkg llvm -y
     - yarnpkg
     - yarnpkg build --target $TARGET
   artifacts:
