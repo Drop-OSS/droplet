@@ -3,6 +3,7 @@ stages:
  - publish
 
 build:
+  stage: build
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
   script:
     - apt-get install yarnpkg -y
