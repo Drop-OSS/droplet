@@ -10,11 +10,11 @@ build:
       - TARGET:
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
-          - x86_64-apple-darwin
   script:
     - rustup target add $TARGET
+    - cargo install cargo-xwin
     - apt-get update -y
-    - apt-get install yarnpkg -y
+    - apt-get install yarnpkg clang-tools-14 -y
     - yarnpkg
     - yarnpkg build --target $TARGET
   artifacts:
