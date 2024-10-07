@@ -12,6 +12,7 @@ build:
           - x86_64-pc-windows-msvc
   script:
     - rustup target add $TARGET
+    - rustup toolchain install stable-$TARGET
     - cargo install cargo-xwin
     - apt-get update -y
     - apt-get install yarnpkg clang-tools-14 -y
