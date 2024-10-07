@@ -9,11 +9,13 @@ use std::{
   collections::HashMap,
   fs::File,
   io::{BufRead, BufReader},
-  os::unix::fs::PermissionsExt,
   path::Path,
   sync::{Arc, Mutex},
 };
 use uuid::Uuid;
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 pub mod file_utils;
 pub mod manifest;
