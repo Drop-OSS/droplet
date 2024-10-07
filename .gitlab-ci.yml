@@ -2,16 +2,42 @@ stages:
  - build
  - publish
 
-build:
+linux-build:
   stage: build
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
   script:
+    - rustup toolchain install stable-x86_64-unknown-linux-gnu
     - apt-get update -y
     - apt-get install yarnpkg -y
     - yarnpkg
-    - yarnpkg build
+    - yarnpkg build --target x86_64-unknown-linux-gnu
   artifacts:
     paths:
       - index.js
       - index.d.ts
       - droplet.*.node
+
+windows-build:
+  stage: build
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
+  script:
+    - rustup toolchain install stable-x86_64-pc-windows-msvc
+    - apt-get update -y
+    - apt-get install yarnpkg -y
+    - yarnpkg
+    - yarnpkg build --target x86_64-pc-windows-msvc
+  artifacts:
+    paths:
+      - index.js
+      - index.d.ts
+      - droplet.*.node
+
+publish:
+  stage: publish
+  dependencies:
+    - build
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:21
+  script:
+    - echo "@drop:registry=https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc
+    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
+    - yarn publish
