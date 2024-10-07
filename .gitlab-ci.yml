@@ -1,0 +1,15 @@
+stages:
+ - build
+ - publish
+
+build:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
+  script:
+    - apt-get install yarnpkg -y
+    - yarnpkg
+    - yarnpkg build
+  artifacts:
+    paths:
+      - index.js
+      - index.d.ts
+      - droplet.*.node
