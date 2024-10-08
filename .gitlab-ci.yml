@@ -19,8 +19,7 @@ build:
     - rustup toolchain install nightly-$TARGET
     - cargo install cargo-xwin
     - apt-get update -y
-    - apt-get install yarnpkg llvm clang libssl-dev git curl zip unzip pkg-config -y
-    - vcpkg integrate install
+    - apt-get install yarnpkg llvm clang pkg-config libssl-dev -y
     - yarnpkg
     - yarnpkg build --target $TARGET
   artifacts:
