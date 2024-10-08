@@ -19,9 +19,6 @@ hex = "0.4.3"
 
 [dependencies.openssl]
 version = "0.10.66"
-features = [
-    "vendored"
-]
 
 [dependencies.uuid]
 version = "1.10.0"

@@ -2,36 +2,33 @@ stages:
  - build
  - publish
 
-.parallel-config:
-  parallel:
-    matrix:
-      - TARGET:
-          - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-msvc
-
-build:
+build-linux:
   stage: build
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
-  extends:
-    - .parallel-config
   script:
-    - rustup target add $TARGET
-    - rustup toolchain install nightly-$TARGET
-    - cargo install cargo-xwin
     - apt-get update -y
-    - apt-get install yarnpkg llvm clang libssl-dev nasm -y
+    - apt-get install yarnpkg -y
     - yarnpkg
-    - yarnpkg build --target $TARGET
+    - yarnpkg build --target x86_64-unknown-linux-gnu
   artifacts:
     paths:
       - index.js
       - index.d.ts
       - droplet.*.node
 
+build-windows:
+  stage: build
+  tags:
+    - windows
+  script:
+    - yarn
+    - yarn build --target x86_64-pc-windows-msvc
+
 publish:
   stage: publish
   dependencies:
-    - build
+    - build-linux
+    - build-windows
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:21
   script:
     - echo "registry=https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/" > .npmrc
