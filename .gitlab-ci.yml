@@ -23,6 +23,12 @@ build-windows:
   script:
     - yarn
     - yarn build --target x86_64-pc-windows-msvc
+  artifacts:
+    paths:
+      - index.js
+      - index.d.ts
+      - droplet.*.node
+
 
 publish:
   stage: publish
