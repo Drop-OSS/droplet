@@ -15,19 +15,8 @@ rayon = "1.10.0"
 serde = "1.0.210"
 ciborium = "0.2.2"
 time = "0.3.36"
-
-[dependencies.x509-verify]
-version  = "0.4.6"
-features = [
-    "pem",
-    "ecdsa"
-]
-
-[dependencies.rcgen]
-version = "0.13.1"
-features = [
-    "x509-parser"
-]
+openssl = "0.10.66"
+hex = "0.4.3"
 
 [dependencies.uuid]
 version = "1.10.0"
