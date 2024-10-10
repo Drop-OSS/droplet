@@ -8,7 +8,7 @@ use std::{
 use std::os::unix::fs::PermissionsExt;
 
 use gxhash::gxhash128;
-use napi::Error;
+use napi::{Error, JsFunction, JsNumber};
 use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -27,12 +27,18 @@ struct Chunk {
 }
 
 #[napi]
-pub fn generate_manifest(dir: String) -> Result<String, Error> {
+pub fn generate_manifest(
+  dir: String,
+  progress: JsFunction,
+  log: JsFunction,
+) -> Result<String, Error> {
   let base_dir = Path::new(&dir);
   let files = list_files(base_dir);
 
   let mut chunks: Vec<Chunk> = Vec::new();
 
+  let total: i32 = files.len() as i32;
+  let mut i: i32 = 0;
   for file_path in files {
     let file = File::open(file_path.clone()).unwrap();
     let relative = file_path.strip_prefix(base_dir).unwrap();
@@ -72,11 +78,19 @@ pub fn generate_manifest(dir: String) -> Result<String, Error> {
 
       chunks.push(chunk);
 
-      println!("Processed chunk {} for {}", chunk_index, relative.to_str().unwrap());
+      log
+        .call1::<String, ()>(format!(
+          "Processed chunk {} for {}",
+          chunk_index,
+          relative.to_str().unwrap()
+        ))
+        .unwrap();
       reader.consume(length);
       chunk_index += 1;
-
     }
+
+    i += 1;
+    progress.call1::<i32, ()>(i * 100 / total).unwrap();
   }
 
   Ok(json!(chunks).to_string())
