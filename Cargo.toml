@@ -16,6 +16,8 @@ serde = "1.0.210"
 ciborium = "0.2.2"
 time = "0.3.36"
 hex = "0.4.3"
+gxhash = "=2.3.0"
+serde_json = "1.0.128"
 
 [dependencies.openssl]
 version = "0.10.66"

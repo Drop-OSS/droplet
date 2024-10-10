@@ -1,6 +1,6 @@
 use std::{fs::{self, metadata}, path::{Path, PathBuf}};
 
-pub fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
+fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(&path).unwrap().is_dir() {
     let paths = fs::read_dir(&path).unwrap();
     for path_result in paths {
