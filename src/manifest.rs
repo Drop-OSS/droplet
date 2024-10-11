@@ -37,7 +37,7 @@ pub fn call_alt_thread_func(callback: JsFunction) -> Result<(), Error> {
     })?;
   let tsfn = tsfn.clone();
   thread::spawn(move || {
-    tsfn.call(Ok(0), ThreadsafeFunctionCallMode::Blocking);
+    tsfn.call(Ok(0), ThreadsafeFunctionCallMode::NonBlocking);
   });
   Ok(())
 }
