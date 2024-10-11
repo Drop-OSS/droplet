@@ -1,14 +1,17 @@
 use std::{
   fs::File,
   io::{BufRead, BufReader},
-  path::Path,
+  path::Path, thread,
 };
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 use gxhash::gxhash128;
-use napi::{Error, JsFunction, JsNumber};
+use napi::{
+  threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Error, JsFunction,
+};
 use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -24,6 +27,19 @@ struct Chunk {
   file_name: String,
   chunk_index: u32,
   checksum: String,
+}
+
+#[napi]
+pub fn call_alt_thread_func(callback: JsFunction) -> Result<(), Error> {
+  let tsfn: ThreadsafeFunction<u32, ErrorStrategy::CalleeHandled> = callback
+    .create_threadsafe_function(0, |ctx| {
+      ctx.env.create_uint32(ctx.value + 1).map(|v| vec![v])
+    })?;
+  let tsfn = tsfn.clone();
+  thread::spawn(move || {
+    tsfn.call(Ok(0), ThreadsafeFunctionCallMode::Blocking);
+  });
+  Ok(())
 }
 
 #[napi]
