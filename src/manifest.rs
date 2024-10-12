@@ -28,6 +28,7 @@ struct Chunk {
   file_name: String,
   chunk_index: u32,
   checksum: String,
+  length: usize,
 }
 
 #[napi]
@@ -104,6 +105,7 @@ pub fn generate_manifest(
           permissions: permissions,
           file_name: relative.to_str().unwrap().to_string(),
           checksum: checksum_string,
+          length: length,
         };
 
         chunks.push(chunk);
