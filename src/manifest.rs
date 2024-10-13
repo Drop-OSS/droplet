@@ -1,8 +1,5 @@
 use std::{
-  fs::File,
-  io::{BufRead, BufReader},
-  path::Path,
-  thread,
+  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, thread
 };
 
 #[cfg(unix)]
@@ -19,11 +16,10 @@ use uuid::Uuid;
 
 use crate::file_utils::list_files;
 
-const CHUNK_SIZE: usize = 1024 * 1024 * 16;
+const CHUNK_SIZE: usize = 1024 * 1024 * 128;
 
 #[derive(Serialize)]
 struct Chunk {
-  id: String,
   permissions: u32,
   file_name: String,
   chunk_index: u32,
@@ -65,7 +61,7 @@ pub fn generate_manifest(
     let base_dir = Path::new(&dir);
     let files = list_files(base_dir);
 
-    let mut chunks: Vec<Chunk> = Vec::new();
+    let mut chunks: HashMap<String, Chunk> = HashMap::new();
 
     let total: i32 = files.len() as i32;
     let mut i: i32 = 0;
@@ -100,7 +96,6 @@ pub fn generate_manifest(
         let checksum_string = hex::encode(checksum.to_le_bytes());
 
         let chunk = Chunk {
-          id: chunk_id.to_string(),
           chunk_index: chunk_index,
           permissions: permissions,
           file_name: relative.to_str().unwrap().to_string(),
@@ -108,7 +103,10 @@ pub fn generate_manifest(
           length: length,
         };
 
-        chunks.push(chunk);
+        let original = chunks.insert(chunk_id.to_string(), chunk);
+        if original.is_some() {
+          panic!("UUID collision");
+        }
 
         let log_str = format!(
           "Processed chunk {} for {}",
