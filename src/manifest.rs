@@ -1,5 +1,9 @@
 use std::{
-  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, thread
+  collections::HashMap,
+  fs::File,
+  io::{BufRead, BufReader},
+  path::Path,
+  thread,
 };
 
 #[cfg(unix)]
@@ -10,7 +14,6 @@ use napi::{
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Error, JsFunction,
 };
-use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -18,13 +21,12 @@ use crate::file_utils::list_files;
 
 const CHUNK_SIZE: usize = 1024 * 1024 * 128;
 
-#[derive(Serialize)]
-struct Chunk {
+#[derive(serde::Serialize)]
+struct ChunkData {
   permissions: u32,
-  file_name: String,
-  chunk_index: u32,
-  checksum: String,
-  length: usize,
+  ids: Vec<String>,
+  checksums: Vec<String>,
+  lengths: Vec<usize>,
 }
 
 #[napi]
@@ -51,17 +53,22 @@ pub fn generate_manifest(
     .create_threadsafe_function(0, |ctx| ctx.env.create_int32(ctx.value).map(|v| vec![v]))
     .unwrap();
   let log_sfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = log
-    .create_threadsafe_function(0, |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]))
+    .create_threadsafe_function(0, |ctx| {
+      ctx.env.create_string_from_std(ctx.value).map(|v| vec![v])
+    })
     .unwrap();
   let callback_sfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = callback
-    .create_threadsafe_function(0, |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]))
+    .create_threadsafe_function(0, |ctx| {
+      ctx.env.create_string_from_std(ctx.value).map(|v| vec![v])
+    })
     .unwrap();
 
   thread::spawn(move || {
     let base_dir = Path::new(&dir);
     let files = list_files(base_dir);
 
-    let mut chunks: HashMap<String, Chunk> = HashMap::new();
+    // Filepath to chunk data
+    let mut chunks: HashMap<String, ChunkData> = HashMap::new();
 
     let total: i32 = files.len() as i32;
     let mut i: i32 = 0;
@@ -81,6 +88,13 @@ pub fn generate_manifest(
 
       let mut reader = BufReader::with_capacity(CHUNK_SIZE, file);
 
+      let mut chunk_data = ChunkData {
+        permissions: permissions,
+        ids: Vec::new(),
+        checksums: Vec::new(),
+        lengths: Vec::new(),
+      };
+
       let mut chunk_index = 0;
       loop {
         let mut buffer: Vec<u8> = Vec::new();
@@ -95,18 +109,9 @@ pub fn generate_manifest(
         let checksum = gxhash128(&buffer, 0);
         let checksum_string = hex::encode(checksum.to_le_bytes());
 
-        let chunk = Chunk {
-          chunk_index: chunk_index,
-          permissions: permissions,
-          file_name: relative.to_str().unwrap().to_string(),
-          checksum: checksum_string,
-          length: length,
-        };
-
-        let original = chunks.insert(chunk_id.to_string(), chunk);
-        if original.is_some() {
-          panic!("UUID collision");
-        }
+        chunk_data.ids.push(chunk_id.to_string());
+        chunk_data.checksums.push(checksum_string);
+        chunk_data.lengths.push(length);
 
         let log_str = format!(
           "Processed chunk {} for {}",
@@ -118,6 +123,8 @@ pub fn generate_manifest(
         reader.consume(length);
         chunk_index += 1;
       }
+
+      chunks.insert(relative.to_str().unwrap().to_string(), chunk_data);
 
       i += 1;
       let progress = i * 100 / total;
