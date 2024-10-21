@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 use crate::file_utils::list_files;
 
-const CHUNK_SIZE: usize = 1024 * 1024 * 128;
+const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 
 #[derive(serde::Serialize)]
 struct ChunkData {
