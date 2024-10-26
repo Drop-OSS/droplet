@@ -33,11 +33,10 @@ build-windows:
 # only test on Linux because Windows is a PIA
 test-linux:
   stage: test
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:lts-bullseye
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:lts-bookworm
   dependencies:
     - build-linux
   script:
-    - apt-get install openssl -y
     - yarn
     - yarn test
 
