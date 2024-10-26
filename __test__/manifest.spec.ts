@@ -39,6 +39,7 @@ test("numerous small file", async (t) => {
   ];
   for (let index in checksums) {
     const entry = manifest[index.toString()];
+    console.log(`Entry: ${entry}`);
     if (!entry) return t.fail(`manifest missing file ${index}`);
 
     const checksum = entry.checksums[0];
