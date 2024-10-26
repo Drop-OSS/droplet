@@ -37,6 +37,7 @@ test-linux:
   dependencies:
     - build-linux
   script:
+    - apt-get install openssl -y
     - yarn
     - yarn test
 
