@@ -1,6 +1,7 @@
 stages:
- - build
- - publish
+  - build
+  - test
+  - publish
 
 build-linux:
   stage: build
@@ -29,9 +30,20 @@ build-windows:
       - index.d.ts
       - droplet.*.node
 
+# only test on Linux because Windows is a PIA
+test-linux:
+  stage: test
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/rust:1.81.0-bookworm
+  dependencies:
+    - build-linux
+  script:
+    - yarn test
 
 publish:
   stage: publish
+  rules:
+    - changes:
+        - package.json # only run if we update the version
   dependencies:
     - build-linux
     - build-windows

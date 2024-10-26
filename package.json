@@ -16,10 +16,19 @@
   "license": "MIT",
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
-    "ava": "^6.0.1"
+    "@types/node": "^22.8.1",
+    "ava": "^6.0.1",
+    "tsimp": "^2.0.12",
+    "typescript": "^5.6.3"
   },
   "ava": {
-    "timeout": "3m"
+    "timeout": "10m",
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--import=tsimp"
+    ]
   },
   "engines": {
     "node": ">= 10"

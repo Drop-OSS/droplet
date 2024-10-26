@@ -1,15 +1,11 @@
 use std::{
-  collections::HashMap,
-  fs::File,
-  io::{BufRead, BufReader},
-  path::Path,
-  thread,
+  collections::HashMap, fs::File, hash::Hasher, io::{BufRead, BufReader}, path::Path, thread
 };
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-use gxhash::gxhash128;
+use gxhash::{gxhash128, GxHasher};
 use napi::{
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Error, JsFunction,
@@ -106,7 +102,9 @@ pub fn generate_manifest(
         }
 
         let chunk_id = Uuid::new_v4();
-        let checksum = gxhash128(&buffer, 0);
+        let mut checksum_generate = GxHasher::with_seed(0);
+        checksum_generate.write(&buffer);
+        let checksum = checksum_generate.finish_u128();
         let checksum_string = hex::encode(checksum.to_le_bytes());
 
         chunk_data.ids.push(chunk_id.to_string());
