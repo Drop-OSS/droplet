@@ -103,7 +103,7 @@ pub fn generate_manifest(
 
         let chunk_id = Uuid::new_v4();
         let mut checksum_generate = GxHasher::with_seed(0);
-        checksum_generate.write(&buffer);
+        checksum_generate.write_all(&buffer);
         let checksum = checksum_generate.finish_u128();
         let checksum_string = hex::encode(checksum.to_le_bytes());
 
