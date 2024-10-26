@@ -37,6 +37,7 @@ test-linux:
   dependencies:
     - build-linux
   script:
+    - yarn
     - yarn test
 
 publish:
