@@ -33,13 +33,12 @@ test("numerous small file", async (t) => {
 
   // Check the first few checksums
   const checksums = [
-    "4b82be835c1f2bc3a447e7c6965c3979",
-    "763807ecb543f8417dc1388aa9c669e9",
-    "21981611048001c07cdbd95200a15a31",
+    "cfcd208495d565ef66e7dff9f98764da",
+    "c4ca4238a0b923820dcc509a6f75849b",
+    "c81e728d9d4c2f636f067f89cc14862c",
   ];
   for (let index in checksums) {
     const entry = manifest[index.toString()];
-    console.log(`Entry: ${entry}`);
     if (!entry) return t.fail(`manifest missing file ${index}`);
 
     const checksum = entry.checksums[0];

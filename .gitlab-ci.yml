@@ -34,7 +34,6 @@ build-windows:
 test-linux:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:lts-bookworm
-  allow_failure: true
   dependencies:
     - build-linux
   script:
