@@ -6,4 +6,3 @@ pub mod ssl;
 
 #[macro_use]
 extern crate napi_derive;
-
