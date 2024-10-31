@@ -1,11 +1,10 @@
 use std::{
-  collections::HashMap, fs::File, hash::Hasher, io::{BufRead, BufReader}, path::Path, thread
+  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, thread
 };
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-use gxhash::{gxhash128, GxHasher};
 use napi::{
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Error, JsFunction,
@@ -85,7 +84,7 @@ pub fn generate_manifest(
       let mut reader = BufReader::with_capacity(CHUNK_SIZE, file);
 
       let mut chunk_data = ChunkData {
-        permissions: permissions,
+        permissions,
         ids: Vec::new(),
         checksums: Vec::new(),
         lengths: Vec::new(),
@@ -133,5 +132,5 @@ pub fn generate_manifest(
     );
   });
 
-  return Ok(());
+  Ok(())
 }

@@ -201,3 +201,6 @@ index.js
 index.d.ts
 test.mjs
 manifest.json
+
+# JetBrains
+.idea

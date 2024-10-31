@@ -7,7 +7,6 @@ use openssl::{
   nid::Nid,
   pkey::PKey,
   sign::{Signer, Verifier},
-  ssl::{SslConnector, SslContext, SslMethod},
   stack::Stack,
   x509::{
     extension::{AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectKeyIdentifier},
@@ -15,6 +14,13 @@ use openssl::{
     X509Builder, X509NameBuilder, X509ReqBuilder, X509StoreContext, X509,
   },
 };
+use openssl::asn1::Asn1Integer;
+
+fn create_serial_number() -> Asn1Integer {
+  let mut serial = BigNum::new().unwrap();
+  serial.rand(159, MsbOption::MAYBE_ZERO, false).unwrap();
+  serial.to_asn1_integer().unwrap()
+}
 
 #[napi]
 pub fn generate_root_ca() -> Result<Vec<String>, Error> {
@@ -25,11 +31,7 @@ pub fn generate_root_ca() -> Result<Vec<String>, Error> {
   let mut x509_builder = X509Builder::new().unwrap();
   x509_builder.set_version(2).unwrap();
 
-  let serial_number = {
-    let mut serial = BigNum::new().unwrap();
-    serial.rand(159, MsbOption::MAYBE_ZERO, false).unwrap();
-    serial.to_asn1_integer().unwrap()
-  };
+  let serial_number = create_serial_number();
   x509_builder.set_serial_number(&serial_number).unwrap();
 
   let mut x509_name = X509NameBuilder::new().unwrap();
@@ -72,10 +74,10 @@ pub fn generate_root_ca() -> Result<Vec<String>, Error> {
 
   let x509 = x509_builder.build();
 
-  return Ok(vec![
+  Ok(vec![
     String::from_utf8(x509.to_pem().unwrap()).unwrap(),
     String::from_utf8(key_pair.private_key_to_pem_pkcs8().unwrap()).unwrap(),
-  ]);
+  ])
 }
 
 #[napi]
@@ -121,11 +123,7 @@ pub fn generate_client_certificate(
   x509_builder.set_version(2).unwrap();
   x509_builder.set_pubkey(&key_pair).unwrap();
 
-  let serial_number = {
-    let mut serial = BigNum::new().unwrap();
-    serial.rand(159, MsbOption::MAYBE_ZERO, false).unwrap();
-    serial.to_asn1_integer().unwrap()
-  };
+  let serial_number = create_serial_number();
   x509_builder.set_serial_number(&serial_number).unwrap();
 
   x509_builder.set_subject_name(req.subject_name()).unwrap();
@@ -173,10 +171,10 @@ pub fn generate_client_certificate(
 
   let x509 = x509_builder.build();
 
-  return Ok(vec![
+  Ok(vec![
     String::from_utf8(x509.to_pem().unwrap()).unwrap(),
     String::from_utf8(key_pair.private_key_to_pem_pkcs8().unwrap()).unwrap(),
-  ]);
+  ])
 }
 
 #[napi]
@@ -196,7 +194,7 @@ pub fn verify_client_certificate(client_cert: String, root_ca: String) -> Result
     .init(&store, &client_cert, &chain, |c| c.verify_cert())
     .unwrap();
 
-  return Ok(result);
+  Ok(result)
 }
 
 #[napi]
@@ -210,7 +208,7 @@ pub fn sign_nonce(private_key: String, nonce: String) -> Result<String, Error> {
 
   let hex_signature = hex::encode(signature);
 
-  return Ok(hex_signature);
+  Ok(hex_signature)
 }
 
 #[napi]
@@ -229,5 +227,5 @@ pub fn verify_nonce(public_cert: String, nonce: String, signature: String) -> Re
 
   let result = verifier.verify(&signature).unwrap();
 
-  return Ok(result);
+  Ok(result)
 }
