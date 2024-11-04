@@ -1,4 +1,5 @@
 use napi::Error;
+use openssl::asn1::Asn1Integer;
 use openssl::{
   asn1::Asn1Time,
   bn::{BigNum, MsbOption},
@@ -14,7 +15,6 @@ use openssl::{
     X509Builder, X509NameBuilder, X509ReqBuilder, X509StoreContext, X509,
   },
 };
-use openssl::asn1::Asn1Integer;
 
 fn create_serial_number() -> Asn1Integer {
   let mut serial = BigNum::new().unwrap();
@@ -218,11 +218,7 @@ pub fn verify_nonce(public_cert: String, nonce: String, signature: String) -> Re
 
   let signature = hex::decode(signature).unwrap();
 
-  let mut verifier = Verifier::new(
-    MessageDigest::sha256(),
-    &client_public_key,
-  )
-  .unwrap();
+  let mut verifier = Verifier::new(MessageDigest::sha256(), &client_public_key).unwrap();
   verifier.update(nonce.as_bytes()).unwrap();
 
   let result = verifier.verify(&signature).unwrap();

@@ -12,7 +12,6 @@ napi = { version = "2.12.2", default-features = false, features = ["napi4", "asy
 napi-derive = "2.12.2"
 time = "0.3.36"
 hex = "0.4.3"
-gxhash = "=2.3.0"
 serde_json = "1.0.128"
 md5 = "0.7.0"
 

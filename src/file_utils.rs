@@ -1,4 +1,7 @@
-use std::{fs::{self, metadata}, path::{Path, PathBuf}};
+use std::{
+  fs::{self, metadata},
+  path::{Path, PathBuf},
+};
 
 fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(path).unwrap().is_dir() {

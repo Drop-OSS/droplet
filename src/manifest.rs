@@ -1,5 +1,9 @@
 use std::{
-  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, thread
+  collections::HashMap,
+  fs::File,
+  io::{BufRead, BufReader},
+  path::Path,
+  thread,
 };
 
 #[cfg(unix)]
@@ -73,10 +77,14 @@ pub fn generate_manifest(
       let relative = file_path.strip_prefix(base_dir).unwrap();
       let permission_object = file.try_clone().unwrap().metadata().unwrap().permissions();
       let permissions = {
-        let mut perm = 0;
-        #[cfg(unix)]
+        let perm: u32;
+        #[cfg(target_family = "unix")]
         {
           perm = permission_object.mode();
+        }
+        #[cfg(not(target_family = "unix"))]
+        {
+          perm = 0
         }
         perm
       };
