@@ -41,5 +41,6 @@
     "test": "ava",
     "universal": "napi universal",
     "version": "napi version"
-  }
+  },
+  "packageManager": "yarn@1.22.22"
 }
