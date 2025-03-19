@@ -1,3 +1,4 @@
+use openssl::hash::{hash, MessageDigest};
 use std::{
   collections::HashMap,
   fs::File,
@@ -109,7 +110,7 @@ pub fn generate_manifest(
         }
 
         let chunk_id = Uuid::new_v4();
-        let checksum = md5::compute(buffer).0;
+        let checksum = hash(MessageDigest::md5(), &buffer).unwrap();
         let checksum_string = hex::encode(checksum);
 
         chunk_data.ids.push(chunk_id.to_string());
