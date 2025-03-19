@@ -1,3 +1,3 @@
-# `droplet-linux-x64-gnu`
+# `@drop/droplet-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `droplet`
+This is the **x86_64-unknown-linux-gnu** binary for `@drop/droplet`

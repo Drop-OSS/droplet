@@ -1,0 +1,15 @@
+{
+  "name": "@drop/droplet-darwin-universal",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "main": "droplet.darwin-universal.node",
+  "files": [
+    "droplet.darwin-universal.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}

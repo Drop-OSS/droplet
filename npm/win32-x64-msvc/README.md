@@ -1,3 +1,3 @@
-# `droplet-win32-x64-msvc`
+# `@drop/droplet-win32-x64-msvc`
 
-This is the **x86_64-pc-windows-msvc** binary for `droplet`
+This is the **x86_64-pc-windows-msvc** binary for `@drop/droplet`

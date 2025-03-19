@@ -4,7 +4,7 @@ Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-lev
 
 ## Chunker
 
-The `chunker.rs` rapidly splits game files into 64MiB or less chunks to be used in Drop distribution. Files are chunked initially to generate a manifest, checksums (coming soon) and make it easier for the Drop server to distribute them.
+The `chunker.rs` rapidly splits game files into 64MiB or less chunks to be used in Drop distribution. Files are chunked initially to generate a manifest, checksums and make it easier for the Drop server to distribute them.
 
 ## SSL
 

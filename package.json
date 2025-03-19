@@ -6,35 +6,36 @@
   "napi": {
     "name": "droplet",
     "triples": {
-      "defaults": false,
       "additional": [
-        "x86_64-unknown-linux-gnu",
-        "x86_64-pc-windows-msvc"
+        "aarch64-apple-darwin",
+        "aarch64-linux-android",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc",
+        "armv7-unknown-linux-gnueabihf",
+        "armv7-unknown-linux-musleabihf",
+        "x86_64-unknown-linux-musl",
+        "x86_64-unknown-freebsd",
+        "i686-pc-windows-msvc",
+        "armv7-linux-androideabi",
+        "universal-apple-darwin",
+        "riscv64gc-unknown-linux-gnu"
       ]
     }
   },
   "license": "MIT",
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
-    "@types/node": "^22.8.1",
-    "ava": "^6.0.1",
-    "tsimp": "^2.0.12",
-    "typescript": "^5.6.3"
+    "ava": "^6.0.1"
   },
   "ava": {
-    "timeout": "10m",
-    "extensions": {
-      "ts": "module"
-    },
-    "nodeArguments": [
-      "--import=tsimp"
-    ]
+    "timeout": "3m"
   },
   "engines": {
     "node": ">= 10"
   },
   "scripts": {
-    "artifacts": "napi artifacts -d .",
+    "artifacts": "napi artifacts",
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
@@ -42,5 +43,5 @@
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "yarn@1.22.22"
+  "packageManager": "yarn@4.7.0"
 }
