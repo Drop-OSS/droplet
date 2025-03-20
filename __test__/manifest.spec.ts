@@ -75,7 +75,7 @@ test("single large file", async (t) => {
   const writeStream = fs.createWriteStream(testFile);
   randomReadStream.pipe(writeStream);
 
-  await new Promise((r) => randomReadStream.on("end", r));
+  await new Promise<void>((r) => randomReadStream.on("end", r));
 
   const manifest: {
     [key: string]: { lengths: number[] };

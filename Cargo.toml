@@ -1,25 +1,31 @@
 [package]
 edition = "2021"
 name = "droplet"
-version = "0.0.0"
+version = "0.7.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "2.12.2", default-features = false, features = ["napi4", "async"] }
+napi = { version = "2.12.2", default-features = false, features = [
+    "napi4",
+    "async",
+] }
 napi-derive = "2.12.2"
-time = "0.3.36"
 hex = "0.4.3"
 serde_json = "1.0.128"
 md5 = "0.7.0"
+time-macros = "=0.2.21"
+time = "0.3.40"
+
+[dependencies.rcgen]
+version = "0.13.2"
+features = ["crypto", "pem", "x509-parser"]
 
 [dependencies.serde]
 version = "1.0.210"
-features = [
-    "serde_derive"
-]
+features = ["serde_derive"]
 
 [dependencies.openssl]
 version = "0.10.66"
