@@ -1,24 +1,15 @@
 use napi::Error;
 use openssl::asn1::Asn1Integer;
 use openssl::{
-  asn1::Asn1Time,
   bn::{BigNum, MsbOption},
-  ec::{EcGroup, EcKey},
+  ec::EcKey,
   hash::MessageDigest,
-  nid::Nid,
   pkey::PKey,
   sign::{Signer, Verifier},
   stack::Stack,
-  x509::{
-    extension::{AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectKeyIdentifier},
-    store::X509StoreBuilder,
-    X509Builder, X509NameBuilder, X509ReqBuilder, X509StoreContext, X509,
-  },
+  x509::{store::X509StoreBuilder, X509StoreContext, X509},
 };
-use rcgen::{
-  Certificate, CertificateParams, DistinguishedName, ExtendedKeyUsagePurpose, Ia5String, IsCa,
-  KeyPair, KeyUsagePurpose, SanType, SerialNumber,
-};
+use rcgen::{CertificateParams, DistinguishedName, IsCa, KeyPair, KeyUsagePurpose};
 use time::{Duration, OffsetDateTime};
 
 fn create_serial_number() -> Asn1Integer {
@@ -61,7 +52,7 @@ pub fn generate_root_ca() -> Result<Vec<String>, Error> {
 #[napi]
 pub fn generate_client_certificate(
   client_id: String,
-  client_name: String,
+  _client_name: String,
   root_ca: String,
   root_ca_private: String,
 ) -> Result<Vec<String>, Error> {
