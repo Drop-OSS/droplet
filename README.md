@@ -1,6 +1,6 @@
 # Droplet
 
-Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-level utils for Droplet.
+Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-level utils for [Drop](https://gitub.com/Drop-OSS/droplet).
 
 ## Chunker
 

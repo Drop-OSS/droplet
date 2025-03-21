@@ -3,6 +3,7 @@ edition = "2021"
 name = "droplet"
 version = "0.7.0"
 license = "GPLv3-Affero"
+description = "Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-level utils for Drop"
 [lib]
 crate-type = ["cdylib"]
 
