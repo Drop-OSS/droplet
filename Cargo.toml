@@ -34,9 +34,6 @@ features = ["crypto", "pem", "x509-parser"]
 version = "1.0.210"
 features = ["serde_derive"]
 
-[dependencies.openssl]
-version = "0.10.66"
-
 [dependencies.uuid]
 version = "1.10.0"
 features = [
