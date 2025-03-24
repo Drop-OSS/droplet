@@ -93,7 +93,7 @@ jobs:
           node-version: 20
           cache: yarn
       - name: Install
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
         if: ${{ !matrix.settings.docker }}
         with:
           toolchain: stable
