@@ -1,22 +1,13 @@
 use napi::Error;
-use openssl::asn1::Asn1Integer;
-use openssl::{
-  bn::{BigNum, MsbOption},
-  ec::EcKey,
-  hash::MessageDigest,
-  pkey::PKey,
-  sign::{Signer, Verifier},
-  stack::Stack,
-  x509::{store::X509StoreBuilder, X509StoreContext, X509},
+use rcgen::{
+  CertificateParams, DistinguishedName, IsCa, KeyPair, KeyUsagePurpose, PublicKeyData,
+  SubjectPublicKeyInfo,
 };
-use rcgen::{CertificateParams, DistinguishedName, IsCa, KeyPair, KeyUsagePurpose};
+use ring::rand::SystemRandom;
+use ring::signature::{EcdsaKeyPair, VerificationAlgorithm};
 use time::{Duration, OffsetDateTime};
-
-fn create_serial_number() -> Asn1Integer {
-  let mut serial = BigNum::new().unwrap();
-  serial.rand(159, MsbOption::MAYBE_ZERO, false).unwrap();
-  serial.to_asn1_integer().unwrap()
-}
+use x509_parser::parse_x509_certificate;
+use x509_parser::pem::Pem;
 
 #[napi]
 pub fn generate_root_ca() -> Result<Vec<String>, Error> {
@@ -75,7 +66,8 @@ pub fn generate_client_certificate(
     KeyUsagePurpose::DataEncipherment,
   ];
 
-  let key_pair = KeyPair::generate().map_err(|e| napi::Error::from_reason(e.to_string()))?;
+  let key_pair = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P384_SHA384)
+    .map_err(|e| napi::Error::from_reason(e.to_string()))?;
   let certificate = CertificateParams::signed_by(params, &key_pair, &root_ca, &root_key_pair)
     .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
@@ -85,33 +77,39 @@ pub fn generate_client_certificate(
 
 #[napi]
 pub fn verify_client_certificate(client_cert: String, root_ca: String) -> Result<bool, Error> {
-  let root_ca_cert = X509::from_pem(root_ca.as_bytes()).unwrap();
-
-  let mut store_builder = X509StoreBuilder::new().unwrap();
-  store_builder.add_cert(root_ca_cert).unwrap();
-  let store = store_builder.build();
-
-  let client_cert: X509 = X509::from_pem(client_cert.as_bytes()).unwrap();
-
-  let chain = Stack::new().unwrap();
-
-  let mut store_ctx = X509StoreContext::new().unwrap();
-  let result = store_ctx
-    .init(&store, &client_cert, &chain, |c| c.verify_cert())
+  let root_ca = Pem::iter_from_buffer(root_ca.as_bytes())
+    .next()
+    .unwrap()
     .unwrap();
+  let root_ca = root_ca.parse_x509().unwrap();
 
-  Ok(result)
+  let client_cert = Pem::iter_from_buffer(client_cert.as_bytes())
+    .next()
+    .unwrap()
+    .unwrap();
+  let client_cert = client_cert.parse_x509().unwrap();
+
+  let valid = root_ca
+    .verify_signature(Some(client_cert.public_key()))
+    .is_ok();
+
+  Ok(valid)
 }
 
 #[napi]
 pub fn sign_nonce(private_key: String, nonce: String) -> Result<String, Error> {
-  let client_private_key = EcKey::private_key_from_pem(private_key.as_bytes()).unwrap();
-  let pkey_private_key = PKey::from_ec_key(client_private_key).unwrap();
+  let rng = SystemRandom::new();
 
-  let mut signer = Signer::new(MessageDigest::sha256(), &pkey_private_key).unwrap();
-  signer.update(nonce.as_bytes()).unwrap();
-  let signature = signer.sign_to_vec().unwrap();
+  let key_pair = KeyPair::from_pem(&private_key).unwrap();
 
+  let key_pair = EcdsaKeyPair::from_pkcs8(
+    &ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING,
+    &key_pair.serialize_der(),
+    &rng,
+  )
+  .unwrap();
+
+  let signature = key_pair.sign(&rng, nonce.as_bytes()).unwrap();
   let hex_signature = hex::encode(signature);
 
   Ok(hex_signature)
@@ -119,15 +117,19 @@ pub fn sign_nonce(private_key: String, nonce: String) -> Result<String, Error> {
 
 #[napi]
 pub fn verify_nonce(public_cert: String, nonce: String, signature: String) -> Result<bool, Error> {
-  let client_public_cert = X509::from_pem(public_cert.as_bytes()).unwrap();
-  let client_public_key = client_public_cert.public_key().unwrap();
+  let (_, pem) = x509_parser::pem::parse_x509_pem(public_cert.as_bytes()).unwrap();
+  let (_, spki) = parse_x509_certificate(&pem.contents).unwrap();
+  let public_key = SubjectPublicKeyInfo::from_der(spki.public_key().raw).unwrap();
 
-  let signature = hex::decode(signature).unwrap();
+  let raw_signature = hex::decode(signature).unwrap();
 
-  let mut verifier = Verifier::new(MessageDigest::sha256(), &client_public_key).unwrap();
-  verifier.update(nonce.as_bytes()).unwrap();
+  let valid = ring::signature::ECDSA_P384_SHA384_FIXED
+    .verify(
+      public_key.der_bytes().into(),
+      nonce.as_bytes().into(),
+      raw_signature[..].into(),
+    )
+    .is_ok();
 
-  let result = verifier.verify(&signature).unwrap();
-
-  Ok(result)
+  Ok(valid)
 }

@@ -50,6 +50,24 @@ test("trust chain", (t) => {
   return t.fail();
 });
 
+test("trust chain fails", (t) => {
+  const [rootPub, rootPriv] = generateRootCa();
+
+  const [clientPub, _priv] = generateClientCertificate(
+    "",
+    "",
+    rootPub,
+    rootPriv
+  );
+
+  const [otherRootPub, otherRootPriv] = generateRootCa();
+
+  const valid = verifyClientCertificate(clientPub, otherRootPub);
+  if (!valid) return t.pass();
+
+  t.fail("client certificate verifies non-related certificate");
+});
+
 test("nonce signing", (t) => {
   const [pub, priv] = generateRootCa();
   const [clientPub, clientPriv] = generateClientCertificate(
@@ -60,7 +78,6 @@ test("nonce signing", (t) => {
   );
 
   const nonce = randomUUID();
-
   const signature = signNonce(clientPriv, nonce);
 
   return t.pass();
@@ -80,7 +97,26 @@ test("nonce signing, and verification", (t) => {
   const signature = signNonce(clientPriv, nonce);
   const valid = verifyNonce(clientPub, nonce, signature);
 
-  if (!valid) return t.fail();
+  if (!valid) return t.fail("nonce does not verify correctly");
 
   return t.pass();
+});
+
+test("nonce signing, fails verification", (t) => {
+  const [rootPub, rootPriv] = generateRootCa();
+  const [clientPub, clientPriv] = generateClientCertificate(
+    "test",
+    "test",
+    rootPub,
+    rootPriv
+  );
+  const [otherClientPub, otherClientPriv] = generateClientCertificate("test2", "test2", rootPub, rootPriv);
+
+  const nonce = randomUUID();
+  const signature = signNonce(clientPriv, nonce);
+  const valid = verifyNonce(otherClientPub, nonce, signature);
+
+  if(valid) return t.fail("succesfully verified an invalid nonce");
+
+  t.pass();
 });
