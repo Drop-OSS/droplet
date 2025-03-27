@@ -18,9 +18,7 @@ test("numerous small file", async (t) => {
     fs.writeFileSync(fileName, i.toString());
   }
 
-  const manifest: {
-    [key: string]: { checksums: string[]; lengths: number[] };
-  } = JSON.parse(
+  const manifest = JSON.parse(
     await new Promise((r, e) =>
       generateManifest(
         dirName,
@@ -75,11 +73,9 @@ test("single large file", async (t) => {
   const writeStream = fs.createWriteStream(testFile);
   randomReadStream.pipe(writeStream);
 
-  await new Promise<void>((r) => randomReadStream.on("end", r));
+  await new Promise((r) => randomReadStream.on("end", r));
 
-  const manifest: {
-    [key: string]: { lengths: number[] };
-  } = JSON.parse(
+  const manifest = JSON.parse(
     await new Promise((r, e) =>
       generateManifest(
         dirName,
