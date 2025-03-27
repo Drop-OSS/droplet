@@ -27,10 +27,17 @@
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
     "@types/node": "^22.13.10",
-    "ava": "^6.0.1"
+    "ava": "^6.2.0",
+    "typescript": "^5.8.2"
   },
   "ava": {
-    "timeout": "3m"
+    "timeout": "3m",
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--import=tsimp"
+    ]
   },
   "engines": {
     "node": ">= 10"
@@ -40,9 +47,12 @@
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
-    "test": "ava __test__/*",
+    "test": "ava",
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "dependencies": {
+    "tsimp": "^2.0.12"
+  }
 }
