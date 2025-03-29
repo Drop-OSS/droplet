@@ -1,5 +1,5 @@
 {
-  "name": "@drop/droplet-linux-arm-gnueabihf",
+  "name": "@drop-oss/droplet-linux-arm-gnueabihf",
   "version": "0.0.0",
   "os": [
     "linux"

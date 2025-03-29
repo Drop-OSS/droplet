@@ -1,5 +1,5 @@
 {
-  "name": "@drop/droplet-linux-arm64-musl",
+  "name": "@drop-oss/droplet-linux-arm64-musl",
   "version": "0.0.0",
   "os": [
     "linux"

@@ -1,3 +1,3 @@
-# `@drop/droplet-linux-arm-musleabihf`
+# `@drop-oss/droplet-linux-arm-musleabihf`
 
-This is the **armv7-unknown-linux-musleabihf** binary for `@drop/droplet`
+This is the **armv7-unknown-linux-musleabihf** binary for `@drop-oss/droplet`

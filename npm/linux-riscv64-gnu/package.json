@@ -1,5 +1,5 @@
 {
-  "name": "@drop/droplet-linux-riscv64-gnu",
+  "name": "@drop-oss/droplet-linux-riscv64-gnu",
   "version": "0.0.0",
   "os": [
     "linux"

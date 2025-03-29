@@ -1,3 +1,3 @@
-# `@drop/droplet-linux-arm-gnueabihf`
+# `@drop-oss/droplet-linux-arm-gnueabihf`
 
-This is the **armv7-unknown-linux-gnueabihf** binary for `@drop/droplet`
+This is the **armv7-unknown-linux-gnueabihf** binary for `@drop-oss/droplet`

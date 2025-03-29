@@ -1,3 +1,3 @@
-# `@drop/droplet-darwin-x64`
+# `@drop-oss/droplet-darwin-x64`
 
-This is the **x86_64-apple-darwin** binary for `@drop/droplet`
+This is the **x86_64-apple-darwin** binary for `@drop-oss/droplet`

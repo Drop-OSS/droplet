@@ -1,3 +1,3 @@
-# `@drop/droplet-android-arm-eabi`
+# `@drop-oss/droplet-android-arm-eabi`
 
-This is the **armv7-linux-androideabi** binary for `@drop/droplet`
+This is the **armv7-linux-androideabi** binary for `@drop-oss/droplet`

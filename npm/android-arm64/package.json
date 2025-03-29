@@ -1,5 +1,5 @@
 {
-  "name": "@drop/droplet-android-arm64",
+  "name": "@drop-oss/droplet-android-arm64",
   "version": "0.0.0",
   "os": [
     "android"

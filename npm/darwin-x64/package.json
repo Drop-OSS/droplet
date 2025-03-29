@@ -1,5 +1,5 @@
 {
-  "name": "@drop/droplet-darwin-x64",
+  "name": "@drop-oss/droplet-darwin-x64",
   "version": "0.0.0",
   "os": [
     "darwin"
