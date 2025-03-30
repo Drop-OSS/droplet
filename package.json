@@ -44,5 +44,8 @@
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "repository": {
+    "url": "https://github.com/Drop-OSS/droplet"
+  }
 }
