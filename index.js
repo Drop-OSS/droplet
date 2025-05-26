@@ -310,9 +310,10 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { hasBackendForPath, callAltThreadFunc, generateManifest, generateRootCa, generateClientCertificate, verifyClientCertificate, signNonce, verifyNonce } = nativeBinding
+const { hasBackendForPath, listFiles, callAltThreadFunc, generateManifest, generateRootCa, generateClientCertificate, verifyClientCertificate, signNonce, verifyNonce } = nativeBinding
 
 module.exports.hasBackendForPath = hasBackendForPath
+module.exports.listFiles = listFiles
 module.exports.callAltThreadFunc = callAltThreadFunc
 module.exports.generateManifest = generateManifest
 module.exports.generateRootCa = generateRootCa
