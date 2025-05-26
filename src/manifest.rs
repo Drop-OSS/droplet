@@ -16,7 +16,7 @@ use napi::{
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::file_utils::list_files;
+use crate::file_utils::create_backend_for_path;
 
 const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 
@@ -64,7 +64,8 @@ pub fn generate_manifest(
 
   thread::spawn(move || {
     let base_dir = Path::new(&dir);
-    let files = list_files(base_dir);
+    let backend = create_backend_for_path(base_dir).unwrap();
+    let files = backend.list_files(base_dir);
 
     // Filepath to chunk data
     let mut chunks: HashMap<String, ChunkData> = HashMap::new();
@@ -72,27 +73,11 @@ pub fn generate_manifest(
     let total: i32 = files.len() as i32;
     let mut i: i32 = 0;
 
-    for file_path in files {
-      let file = File::open(file_path.clone()).unwrap();
-      let relative = file_path.strip_prefix(base_dir).unwrap();
-      let permission_object = file.try_clone().unwrap().metadata().unwrap().permissions();
-      let permissions = {
-        let perm: u32;
-        #[cfg(target_family = "unix")]
-        {
-          perm = permission_object.mode();
-        }
-        #[cfg(not(target_family = "unix"))]
-        {
-          perm = 0
-        }
-        perm
-      };
-
-      let mut reader = BufReader::with_capacity(CHUNK_SIZE, file);
+    for version_file in files {
+      let mut reader = backend.reader(&version_file);
 
       let mut chunk_data = ChunkData {
-        permissions,
+        permissions: version_file.permission,
         ids: Vec::new(),
         checksums: Vec::new(),
         lengths: Vec::new(),
@@ -119,7 +104,7 @@ pub fn generate_manifest(
         let log_str = format!(
           "Processed chunk {} for {}",
           chunk_index,
-          relative.to_str().unwrap()
+          &version_file.relative_filename
         );
         log_sfn.call(Ok(log_str), ThreadsafeFunctionCallMode::Blocking);
 
@@ -127,7 +112,7 @@ pub fn generate_manifest(
         chunk_index += 1;
       }
 
-      chunks.insert(relative.to_str().unwrap().to_string(), chunk_data);
+      chunks.insert(version_file.relative_filename, chunk_data);
 
       i += 1;
       let progress = i * 100 / total;
