@@ -2,8 +2,7 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::{self, metadata, File},
-  io::{BufReader, Read},
-  os::unix::fs::MetadataExt,
+  io::BufReader,
   path::{Path, PathBuf},
 };
 
@@ -23,7 +22,6 @@ fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
 
 pub struct VersionFile {
   pub relative_filename: String,
-  pub size: u64,
   pub permission: u32,
 }
 
@@ -59,11 +57,9 @@ impl VersionBackend for PathVersionBackend {
         }
         perm
       };
-      let size = metadata.size();
 
       results.push(VersionFile {
         relative_filename: relative.to_string_lossy().to_string(),
-        size: size,
         permission: permissions,
       });
     }
