@@ -110,3 +110,11 @@ pub fn has_backend_for_path(path: String) -> bool {
 
   has_backend
 }
+
+#[napi]
+pub fn list_files(path: String) -> Vec<String> {
+  let path = Path::new(&path);
+  let backend = create_backend_for_path(path).unwrap();
+  let files = backend.list_files(path);
+  files.into_iter().map(|e| e.relative_filename).collect()
+}
