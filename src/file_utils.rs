@@ -6,6 +6,9 @@ use std::{
   path::{Path, PathBuf},
 };
 
+const CHUNK_SIZE: usize = 1024 * 1024 * 64;
+
+
 fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(path).unwrap().is_dir() {
     let paths = fs::read_dir(path).unwrap();
@@ -69,7 +72,7 @@ impl VersionBackend for PathVersionBackend {
 
   fn reader(&self, file: &VersionFile) -> BufReader<File> {
     let file = File::open(self.base_dir.join(file.relative_filename.clone())).unwrap();
-    let reader = BufReader::with_capacity(4096, file);
+    let reader = BufReader::with_capacity(CHUNK_SIZE, file);
     return reader;
   }
 }

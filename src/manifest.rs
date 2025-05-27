@@ -18,8 +18,6 @@ use uuid::Uuid;
 
 use crate::file_utils::create_backend_for_path;
 
-const CHUNK_SIZE: usize = 1024 * 1024 * 64;
-
 #[derive(serde::Serialize)]
 struct ChunkData {
   permissions: u32,

@@ -2,7 +2,7 @@ import test from "ava";
 import fs from "node:fs";
 import path from "path";
 
-import { generateManifest } from "../index.js";
+import { generateManifest, listFiles } from "../index.js";
 
 test("numerous small file", async (t) => {
   // Setup test dir
