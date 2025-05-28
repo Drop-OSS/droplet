@@ -5,7 +5,7 @@
 
 function hasBackendForPath(path: string): boolean
 function listFiles(path: string): Array<string>
-function readFile(path: string, subPath: string): ReadableStream<Array<number>> | null
+function readFile(path: string, subPath: string): ReadableStream<Buffer> | null
 function callAltThreadFunc(tsfn: ((err: Error | null, ) => any)): void
 function generateManifest(dir: string, progressSfn: ((err: Error | null, arg: number) => any), logSfn: ((err: Error | null, arg: string) => any), callbackSfn: ((err: Error | null, arg: string) => any)): void
 function generateRootCa(): Array<string>

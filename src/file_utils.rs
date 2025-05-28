@@ -2,13 +2,19 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::{self, metadata, File},
-  io::{BufReader, Read},
+  io::{self, BufReader, ErrorKind, Read},
   path::{Path, PathBuf},
   task::Poll,
 };
 
-use napi::{bindgen_prelude::*, tokio_stream::{Stream, StreamExt}};
-use tokio_util::{bytes::BytesMut, codec::{BytesCodec, FramedRead}};
+use napi::{
+  bindgen_prelude::*,
+  tokio_stream::{Stream, StreamExt},
+};
+use tokio_util::{
+  bytes::BytesMut,
+  codec::{BytesCodec, FramedRead},
+};
 
 fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(path).unwrap().is_dir() {
@@ -128,21 +134,32 @@ pub fn read_file(
   path: String,
   sub_path: String,
   env: &Env,
-) -> Option<ReadableStream<'static, Vec<u8>>> {
+) -> Option<ReadableStream<'static, BufferSlice<'static>>> {
   let path = Path::new(&path);
   let backend = create_backend_for_path(path).unwrap();
   let version_file = VersionFile {
     relative_filename: sub_path,
     permission: 0, // Shouldn't matter
   };
+  // Use `?` operator for cleaner error propagation from `Option`
   let reader = backend.reader(&version_file)?;
+
+  // Convert std::fs::File to tokio::fs::File for async operations
   let reader = tokio::fs::File::from_std(reader);
-  let stream = FramedRead::new(reader, BytesCodec::new()).map(|e| {
-    if let Ok(bytes) = e {
-      Ok(bytes.to_vec())
-    } else {
-      Err(napi::Error::from_reason(e.unwrap_err().to_string()))
-    }
-  });
+
+  // Create a FramedRead stream with BytesCodec for chunking
+
+  let stream = FramedRead::new(reader, BytesCodec::new())
+    // Use StreamExt::map to transform each Result item
+    .map(|result_item| {
+      result_item
+        // Apply Result::map to transform Ok(BytesMut) to Ok(Vec<u8>)
+        .map(|bytes| bytes.to_vec())
+        // Apply Result::map_err to transform Err(std::io::Error) to Err(napi::Error)
+        .map_err(|e| napi::Error::from(e)) // napi::Error implements From<tokio::io::Error>
+    });
+  // Create the napi-rs ReadableStream from the tokio_stream::Stream
+  // The unwrap() here means if stream creation fails, it will panic.
+  // For a production system, consider returning Result<Option<...>> and handling this.
   Some(ReadableStream::create_with_stream_bytes(env, stream).unwrap())
 }
