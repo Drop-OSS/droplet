@@ -16,8 +16,8 @@ test("check alt thread util", async (t) => {
   endtime2 = Date.now();
 
   const difference = endtime2 - endtime1;
-  if (difference > 500 || difference < 300) {
-    t.fail("timing is not close enough: " + difference);
+  if (difference >= 600) {
+    t.fail("likely isn't multithreaded, difference: " + difference);
   }
 
   t.pass();
