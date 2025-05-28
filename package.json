@@ -4,7 +4,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "droplet",
+    "binaryName": "droplet",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",
@@ -35,7 +35,7 @@
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
-    "universal": "napi universal",
+    "universal": "napi universalize",
     "version": "napi version"
   },
   "packageManager": "yarn@4.7.0",
