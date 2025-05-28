@@ -22,7 +22,7 @@ time-macros = "0.2.22"
 time = "0.3.41"
 webpki = "0.22.4"
 ring = "0.17.14"
-tokio = { version = "1.45.1", features = ["fs"] }
+tokio = { version = "1.45.1", features = ["fs", "io-util"] }
 tokio-util = { version = "0.7.15", features = ["codec"] }
 
 [dependencies.x509-parser]

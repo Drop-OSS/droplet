@@ -2,7 +2,7 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::{self, metadata, File},
-  io::{self, BufReader, ErrorKind, Read},
+  io::{self, BufReader, ErrorKind, Read, Seek},
   path::{Path, PathBuf},
   task::Poll,
 };
@@ -11,6 +11,7 @@ use napi::{
   bindgen_prelude::*,
   tokio_stream::{Stream, StreamExt},
 };
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, Take};
 use tokio_util::{
   bytes::BytesMut,
   codec::{BytesCodec, FramedRead},
@@ -134,6 +135,8 @@ pub fn read_file(
   path: String,
   sub_path: String,
   env: &Env,
+  start: Option<u32>,
+  end: Option<u32>
 ) -> Option<ReadableStream<'static, BufferSlice<'static>>> {
   let path = Path::new(&path);
   let backend = create_backend_for_path(path).unwrap();
@@ -142,14 +145,27 @@ pub fn read_file(
     permission: 0, // Shouldn't matter
   };
   // Use `?` operator for cleaner error propagation from `Option`
-  let reader = backend.reader(&version_file)?;
+  let mut reader = backend.reader(&version_file)?;
 
+  // Can't do this in tokio because it requires a .await, which we can't do here
+  if let Some(start) = start {
+    reader.seek(io::SeekFrom::Start(start as u64)).unwrap();
+  }
+  
   // Convert std::fs::File to tokio::fs::File for async operations
   let reader = tokio::fs::File::from_std(reader);
 
+  
+  let boxed_reader: Box<dyn AsyncRead + Send + Unpin> = match end {
+    Some(end_val) => Box::new(reader.take(end_val as u64)),
+    None => Box::new(reader),
+  };
+
+  
+
   // Create a FramedRead stream with BytesCodec for chunking
 
-  let stream = FramedRead::new(reader, BytesCodec::new())
+  let stream = FramedRead::new(boxed_reader, BytesCodec::new())
     // Use StreamExt::map to transform each Result item
     .map(|result_item| {
       result_item
