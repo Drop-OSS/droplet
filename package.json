@@ -4,13 +4,14 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "binaryName": "droplet",
+    "name": "droplet",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",
         "aarch64-unknown-linux-gnu",
         "aarch64-unknown-linux-musl",
         "aarch64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
         "x86_64-unknown-linux-musl",
         "universal-apple-darwin",
         "riscv64gc-unknown-linux-gnu"
@@ -35,7 +36,7 @@
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
-    "universal": "napi universalize",
+    "universal": "napi universal",
     "version": "napi version"
   },
   "packageManager": "yarn@4.7.0",
