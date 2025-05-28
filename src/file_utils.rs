@@ -2,12 +2,13 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::{self, metadata, File},
-  io::BufReader,
+  io::{BufReader, Read},
   path::{Path, PathBuf},
+  task::Poll,
 };
 
-const CHUNK_SIZE: usize = 1024 * 1024 * 64;
-
+use napi::{bindgen_prelude::*, tokio_stream::{Stream, StreamExt}};
+use tokio_util::{bytes::BytesMut, codec::{BytesCodec, FramedRead}};
 
 fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(path).unwrap().is_dir() {
@@ -30,7 +31,7 @@ pub struct VersionFile {
 
 pub trait VersionBackend: 'static {
   fn list_files(&self, path: &Path) -> Vec<VersionFile>;
-  fn reader(&self, file: &VersionFile) -> BufReader<File>;
+  fn reader(&self, file: &VersionFile) -> Option<File>;
 }
 
 pub struct PathVersionBackend {
@@ -70,10 +71,10 @@ impl VersionBackend for PathVersionBackend {
     results
   }
 
-  fn reader(&self, file: &VersionFile) -> BufReader<File> {
-    let file = File::open(self.base_dir.join(file.relative_filename.clone())).unwrap();
-    let reader = BufReader::with_capacity(CHUNK_SIZE, file);
-    return reader;
+  fn reader(&self, file: &VersionFile) -> Option<File> {
+    let file = File::open(self.base_dir.join(file.relative_filename.clone())).ok()?;
+
+    return Some(file);
   }
 }
 
@@ -85,7 +86,7 @@ impl VersionBackend for ArchiveVersionBackend {
     todo!()
   }
 
-  fn reader(&self, file: &VersionFile) -> BufReader<File> {
+  fn reader(&self, file: &VersionFile) -> Option<File> {
     todo!()
   }
 }
@@ -120,4 +121,28 @@ pub fn list_files(path: String) -> Vec<String> {
   let backend = create_backend_for_path(path).unwrap();
   let files = backend.list_files(path);
   files.into_iter().map(|e| e.relative_filename).collect()
+}
+
+#[napi]
+pub fn read_file(
+  path: String,
+  sub_path: String,
+  env: &Env,
+) -> Option<ReadableStream<'static, Vec<u8>>> {
+  let path = Path::new(&path);
+  let backend = create_backend_for_path(path).unwrap();
+  let version_file = VersionFile {
+    relative_filename: sub_path,
+    permission: 0, // Shouldn't matter
+  };
+  let reader = backend.reader(&version_file)?;
+  let reader = tokio::fs::File::from_std(reader);
+  let stream = FramedRead::new(reader, BytesCodec::new()).map(|e| {
+    if let Ok(bytes) = e {
+      Ok(bytes.to_vec())
+    } else {
+      Err(napi::Error::from_reason(e.unwrap_err().to_string()))
+    }
+  });
+  Some(ReadableStream::create_with_stream_bytes(env, stream).unwrap())
 }
