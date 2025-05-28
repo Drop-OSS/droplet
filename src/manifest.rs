@@ -1,22 +1,21 @@
 use std::{
-  collections::HashMap,
-  fs::File,
-  io::{BufRead, BufReader},
-  path::Path,
-  thread,
+  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, rc::Rc, sync::Arc, thread
 };
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 use napi::{
-  threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Error, JsFunction,
+  bindgen_prelude::Function,
+  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Env, Error, Result,
 };
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::file_utils::create_backend_for_path;
+
+const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 
 #[derive(serde::Serialize)]
 struct ChunkData {
@@ -27,14 +26,10 @@ struct ChunkData {
 }
 
 #[napi]
-pub fn call_alt_thread_func(callback: JsFunction) -> Result<(), Error> {
-  let tsfn: ThreadsafeFunction<u32, ErrorStrategy::CalleeHandled> = callback
-    .create_threadsafe_function(0, |ctx| {
-      ctx.env.create_uint32(ctx.value + 1).map(|v| vec![v])
-    })?;
-  let tsfn = tsfn.clone();
+pub fn call_alt_thread_func(tsfn: Arc<ThreadsafeFunction<()>>) -> Result<(), String> {
+  let tsfn_cloned = tsfn.clone();
   thread::spawn(move || {
-    tsfn.call(Ok(0), ThreadsafeFunctionCallMode::NonBlocking);
+    tsfn_cloned.call(Ok(()), ThreadsafeFunctionCallMode::Blocking);
   });
   Ok(())
 }
@@ -42,24 +37,10 @@ pub fn call_alt_thread_func(callback: JsFunction) -> Result<(), Error> {
 #[napi]
 pub fn generate_manifest(
   dir: String,
-  progress: JsFunction,
-  log: JsFunction,
-  callback: JsFunction,
-) -> Result<(), Error> {
-  let progress_sfn: ThreadsafeFunction<i32, ErrorStrategy::CalleeHandled> = progress
-    .create_threadsafe_function(0, |ctx| ctx.env.create_int32(ctx.value).map(|v| vec![v]))
-    .unwrap();
-  let log_sfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = log
-    .create_threadsafe_function(0, |ctx| {
-      ctx.env.create_string_from_std(ctx.value).map(|v| vec![v])
-    })
-    .unwrap();
-  let callback_sfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = callback
-    .create_threadsafe_function(0, |ctx| {
-      ctx.env.create_string_from_std(ctx.value).map(|v| vec![v])
-    })
-    .unwrap();
-
+  progress_sfn: ThreadsafeFunction<i32>,
+  log_sfn: ThreadsafeFunction<String>,
+  callback_sfn: ThreadsafeFunction<String>,
+) -> Result<(), String> {
   thread::spawn(move || {
     let base_dir = Path::new(&dir);
     let backend = create_backend_for_path(base_dir).unwrap();
@@ -72,7 +53,8 @@ pub fn generate_manifest(
     let mut i: i32 = 0;
 
     for version_file in files {
-      let mut reader = backend.reader(&version_file);
+      let mut raw_reader= backend.reader(&version_file).unwrap();
+      let mut reader = BufReader::with_capacity(CHUNK_SIZE, raw_reader);
 
       let mut chunk_data = ChunkData {
         permissions: version_file.permission,
@@ -101,8 +83,7 @@ pub fn generate_manifest(
 
         let log_str = format!(
           "Processed chunk {} for {}",
-          chunk_index,
-          &version_file.relative_filename
+          chunk_index, &version_file.relative_filename
         );
         log_sfn.call(Ok(log_str), ThreadsafeFunctionCallMode::Blocking);
 
