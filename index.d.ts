@@ -12,7 +12,7 @@ export declare function hasBackendForPath(path: string): boolean
 
 export declare function listFiles(path: string): Array<string>
 
-export declare function readFile(path: string, subPath: string): ReadableStream<Buffer> | null
+export declare function readFile(path: string, subPath: string, start?: number | undefined | null, end?: number | undefined | null): ReadableStream<Buffer> | null
 
 export declare function signNonce(privateKey: string, nonce: string): string
 
