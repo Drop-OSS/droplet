@@ -12,12 +12,8 @@ permissions:
       - main
     tags-ignore:
       - "**"
-    paths-ignore:
-      - "**/*.md"
-      - LICENSE
-      - "**/*.gitignore"
-      - .editorconfig
-      - docs/**
+    paths:
+      - package.json
   pull_request: null
 jobs:
   build:

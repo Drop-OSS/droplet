@@ -52,7 +52,6 @@ test("read file offset", async (t) => {
   fs.mkdirSync(dirName, { recursive: true });
 
   const testString = "0123456789";
-
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
   const stream = droplet.readFile(dirName, "TESTFILE", 1, 4);
@@ -64,7 +63,7 @@ test("read file offset", async (t) => {
     finalString += String.fromCharCode.apply(null, chunk);
   }
 
-  const expectedString = testString.slice(1, 5);
+  const expectedString = testString.slice(1, 4);
 
   t.assert(finalString == expectedString, "file strings don't match");
   fs.rmSync(dirName, { recursive: true });

@@ -1,19 +1,20 @@
 use std::{
-  collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path, rc::Rc, sync::Arc, thread
+  collections::HashMap,
+  io::{BufRead, BufReader},
+  path::Path,
+  sync::Arc,
+  thread,
 };
 
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
-
 use napi::{
-  bindgen_prelude::Function,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, Error, Result,
+  Result,
 };
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::file_utils::create_backend_for_path;
+use crate::version::utils::create_backend_for_path;
+
 
 const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 
@@ -43,8 +44,8 @@ pub fn generate_manifest(
 ) -> Result<(), String> {
   thread::spawn(move || {
     let base_dir = Path::new(&dir);
-    let backend = create_backend_for_path(base_dir).unwrap();
-    let files = backend.list_files(base_dir);
+    let mut backend = create_backend_for_path(base_dir).unwrap();
+    let files = backend.list_files();
 
     // Filepath to chunk data
     let mut chunks: HashMap<String, ChunkData> = HashMap::new();
@@ -53,7 +54,7 @@ pub fn generate_manifest(
     let mut i: i32 = 0;
 
     for version_file in files {
-      let mut raw_reader= backend.reader(&version_file).unwrap();
+      let raw_reader= backend.reader(&version_file).unwrap();
       let mut reader = BufReader::with_capacity(CHUNK_SIZE, raw_reader);
 
       let mut chunk_data = ChunkData {

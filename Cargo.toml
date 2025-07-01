@@ -24,6 +24,7 @@ webpki = "0.22.4"
 ring = "0.17.14"
 tokio = { version = "1.45.1", features = ["fs", "io-util"] }
 tokio-util = { version = "0.7.15", features = ["codec"] }
+zip = "4.2.0"
 
 [dependencies.x509-parser]
 version = "0.17.0"
