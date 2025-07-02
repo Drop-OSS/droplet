@@ -1,6 +1,6 @@
 {
   "name": "@drop-oss/droplet",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
@@ -22,7 +22,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.81",
+    "@napi-rs/cli": "3.0.0-alpha.91",
     "@types/node": "^22.13.10",
     "ava": "^6.2.0"
   },
