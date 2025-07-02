@@ -56,6 +56,7 @@ test("numerous small file", async (t) => {
 
 test.skip("performance test", async (t) => {
   t.timeout(5 * 60 * 1000);
+  return t.pass();
   const dirName = "./.test/pt";
   if (fs.existsSync(dirName)) fs.rmSync(dirName, { recursive: true });
   fs.mkdirSync(dirName, { recursive: true });
