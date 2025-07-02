@@ -94,6 +94,7 @@ jobs:
         shell: bash
       - name: Install dependencies
         run: |-
+          cargo install patch-crate &&
           cargo patch-crate &&
           yarn install
       - name: Build in docker
