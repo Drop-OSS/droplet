@@ -1,11 +1,18 @@
+use core::arch;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::File,
   io::{self, Read},
   path::PathBuf,
+  pin::Pin,
+  rc::Rc,
+  sync::Arc,
 };
-use zip::{read::ZipFile, ZipArchive};
+
+use rawzip::{
+  FileReader, ReaderAt, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, RECOMMENDED_BUFFER_SIZE,
+};
 
 use crate::version::{
   types::{MinimumFileObject, Skippable, VersionBackend, VersionFile},
@@ -57,51 +64,96 @@ impl VersionBackend for PathVersionBackend {
 }
 
 pub struct ZipVersionBackend {
-  archive: ZipArchive<File>,
+  archive: Arc<ZipArchive<FileReader>>,
 }
 impl ZipVersionBackend {
-  pub fn new(archive: PathBuf) -> Self {
-    let handle = File::open(archive).unwrap();
+  pub fn new(archive: File) -> Self {
+    let archive = ZipArchive::from_file(archive, &mut [0u8; RECOMMENDED_BUFFER_SIZE]).unwrap();
     Self {
-      archive: ZipArchive::new(handle).unwrap(),
+      archive: Arc::new(archive),
+    }
+  }
+
+  pub fn new_entry(&self, entry: ZipEntry<'_, FileReader>) -> ZipFileWrapper {
+    ZipFileWrapper {
+      archive: self.archive.clone(),
+      wayfinder: entry.entry,
+      offset: entry.body_offset,
+      end_offset: entry.body_end_offset,
     }
   }
 }
-
-struct ZipFileWrapper<'a> {
-  inner: ZipFile<'a, File>,
+impl Drop for ZipVersionBackend {
+  fn drop(&mut self) {
+    println!("dropping archive");
+  }
 }
 
-impl Read for ZipFileWrapper<'_> {
+struct ZipFileWrapper {
+  pub archive: Arc<ZipArchive<FileReader>>,
+  wayfinder: ZipArchiveEntryWayfinder,
+  offset: u64,
+  end_offset: u64,
+}
+
+impl Read for ZipFileWrapper {
   fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-    self.inner.read(buf)
+    let read_size = buf.len().min((self.end_offset - self.offset) as usize);
+    let read = self
+      .archive
+      .reader
+      .read_at(&mut buf[..read_size], self.offset)?;
+    self.offset += read as u64;
+    Ok(read)
   }
 }
-impl Skippable for ZipFileWrapper<'_> {
+impl Skippable for ZipFileWrapper {
   fn skip(&mut self, amount: u64) {
-    io::copy(&mut self.inner.by_ref().take(amount), &mut io::sink()).unwrap();
+    /*io::copy(
+        &mut self.inner.reader().by_ref().take(amount),
+        &mut io::sink(),
+      )
+      .unwrap();
+    */
   }
 }
-impl MinimumFileObject for ZipFileWrapper<'_> {}
+impl MinimumFileObject for ZipFileWrapper {}
 
 impl VersionBackend for ZipVersionBackend {
   fn list_files(&mut self) -> Vec<VersionFile> {
     let mut results = Vec::new();
-    for i in 0..self.archive.len() {
-      let entry = self.archive.by_index(i).unwrap();
+    let read_buffer = &mut [0u8; RECOMMENDED_BUFFER_SIZE];
+    let mut budget_iterator = self.archive.entries(read_buffer);
+    while let Some(entry) = budget_iterator.next_entry().unwrap() {
+      if entry.is_dir() {
+        continue;
+      }
       results.push(VersionFile {
-        relative_filename: entry.name().to_owned(),
-        permission: entry.unix_mode().or(Some(0)).unwrap(),
+        relative_filename: entry.file_safe_path().unwrap().to_string(),
+        permission: 744, // apparently ZIPs with permissions are not supported by this library, so we let the owner do anything
       });
     }
     results
   }
 
   fn reader(&mut self, file: &VersionFile) -> Option<Box<(dyn MinimumFileObject)>> {
-    let file = self.archive.by_name(&file.relative_filename).ok()?;
-    let zip_file_wrapper = ZipFileWrapper { inner: file };
+    let read_buffer = &mut [0u8; RECOMMENDED_BUFFER_SIZE];
+    let mut entries = self.archive.entries(read_buffer);
+    let entry = loop {
+      if let Some(v) = entries.next_entry().unwrap() {
+        if v.file_safe_path().unwrap().to_string() == file.relative_filename {
+          break Some(v);
+        }
+      } else {
+        break None;
+      }
+    }?;
 
-    //Some(Box::new(zip_file_wrapper))
-    None
+    let wayfinder = entry.wayfinder();
+    let local_entry = self.archive.get_entry(wayfinder).unwrap();
+
+    let wrapper = self.new_entry(local_entry);
+
+    Some(Box::new(wrapper))
   }
 }

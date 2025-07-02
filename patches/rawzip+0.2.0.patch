@@ -1,0 +1,26 @@
+diff --git a/src/archive.rs b/src/archive.rs
+index 1203015..837c405 100644
+--- a/src/archive.rs
++++ b/src/archive.rs
+@@ -275,7 +275,7 @@ impl<'data> Iterator for ZipSliceEntries<'data> {
+ /// ```
+ #[derive(Debug, Clone)]
+ pub struct ZipArchive<R> {
+-    pub(crate) reader: R,
++    pub reader: R,
+     pub(crate) comment: ZipString,
+     pub(crate) eocd: EndOfCentralDirectory,
+ }
+@@ -431,9 +431,9 @@ where
+ #[derive(Debug, Clone)]
+ pub struct ZipEntry<'archive, R> {
+     archive: &'archive ZipArchive<R>,
+-    body_offset: u64,
+-    body_end_offset: u64,
+-    entry: ZipArchiveEntryWayfinder,
++    pub body_offset: u64,
++    pub body_end_offset: u64,
++    pub entry: ZipArchiveEntryWayfinder,
+ }
+ 
+ impl<'archive, R> ZipEntry<'archive, R>

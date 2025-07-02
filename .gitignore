@@ -202,3 +202,6 @@ manifest.json
 
 # JetBrains
 .idea
+
+assets/*
+!assets/generate.sh

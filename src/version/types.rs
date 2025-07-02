@@ -1,4 +1,6 @@
-use std::io::{Read, Seek, SeekFrom};
+use std::{
+  fmt::Debug, io::{Read, Seek, SeekFrom}
+};
 
 use tokio::io::{self, AsyncRead};
 
@@ -26,6 +28,7 @@ impl<T: Read + Send + Seek> MinimumFileObject for T {}
 // Intentionally not a generic, because of types in read_file
 pub struct ReadToAsyncRead {
   pub inner: Box<(dyn Read + Send)>,
+  pub backend: Box<(dyn VersionBackend + Send)>,
 }
 
 impl AsyncRead for ReadToAsyncRead {
@@ -35,7 +38,8 @@ impl AsyncRead for ReadToAsyncRead {
     buf: &mut tokio::io::ReadBuf<'_>,
   ) -> std::task::Poll<io::Result<()>> {
     let mut read_buf = [0u8; 8192];
-    let amount = self.inner.read(&mut read_buf).unwrap();
+    let var_name = self.inner.read(&mut read_buf).unwrap();
+    let amount = var_name;
     buf.put_slice(&read_buf[0..amount]);
     std::task::Poll::Ready(Ok(()))
   }

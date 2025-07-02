@@ -6,11 +6,10 @@ use std::{
 
 use napi::{bindgen_prelude::*, tokio_stream::StreamExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
-use zip::ZipArchive;
 
 use crate::version::{
   backends::{PathVersionBackend, ZipVersionBackend},
-  types::{MinimumFileObject, ReadToAsyncRead, VersionBackend, VersionFile},
+  types::{ReadToAsyncRead, VersionBackend, VersionFile},
 };
 
 pub fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
@@ -27,7 +26,7 @@ pub fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   }
 }
 
-pub fn create_backend_for_path(path: &Path) -> Option<Box<(dyn VersionBackend + Send)>> {
+pub fn create_backend_for_path<'a>(path: &Path) -> Option<Box<(dyn VersionBackend + Send + 'a)>> {
   let is_directory = path.is_dir();
   if is_directory {
     return Some(Box::new(PathVersionBackend {
@@ -35,12 +34,9 @@ pub fn create_backend_for_path(path: &Path) -> Option<Box<(dyn VersionBackend + 
     }));
   };
 
-  /*
-    Insert checks for whatever backend you like
-  */
-
-  if path.ends_with(".zip") {
-    return Some(Box::new(ZipVersionBackend::new(path.to_path_buf())));
+  if path.to_string_lossy().ends_with(".zip") {
+    let f = File::open(path.to_path_buf()).unwrap();
+    return Some(Box::new(ZipVersionBackend::new(f)));
   }
 
   None
@@ -56,11 +52,12 @@ pub fn has_backend_for_path(path: String) -> bool {
 }
 
 #[napi]
-pub fn list_files(path: String) -> Vec<String> {
+pub fn list_files(path: String) -> Result<Vec<String>> {
   let path = Path::new(&path);
-  let mut backend = create_backend_for_path(path).unwrap();
+  let mut backend =
+    create_backend_for_path(path).ok_or(napi::Error::from_reason("No backend for path"))?;
   let files = backend.list_files();
-  files.into_iter().map(|e| e.relative_filename).collect()
+  Ok(files.into_iter().map(|e| e.relative_filename).collect())
 }
 
 #[napi]
@@ -70,7 +67,7 @@ pub fn read_file(
   env: &Env,
   start: Option<u32>,
   end: Option<u32>,
-) -> Option<ReadableStream<'static, BufferSlice<'static>>> {
+) -> Option<ReadableStream<'_, BufferSlice<'_>>> {
   let path = Path::new(&path);
   let mut backend = create_backend_for_path(path).unwrap();
   let version_file = VersionFile {
@@ -90,9 +87,10 @@ pub fn read_file(
     let amount = limit - start.or(Some(0)).unwrap();
     ReadToAsyncRead {
       inner: Box::new(reader.take(amount.into())),
+      backend
     }
   } else {
-    ReadToAsyncRead { inner: reader }
+    ReadToAsyncRead { inner: reader, backend }
   };
 
   // Create a FramedRead stream with BytesCodec for chunking
