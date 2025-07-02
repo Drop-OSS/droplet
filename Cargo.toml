@@ -9,12 +9,12 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "3.0.0-beta.11", default-features = false, features = [
+napi = { version = "3.0.0-alpha.33", default-features = false, features = [
     "napi4",
     "async",
     "web_stream",
 ] }
-napi-derive = "3.0.0-alpha.11"
+napi-derive = "3.0.0-alpha.33"
 hex = "0.4.3"
 serde_json = "1.0.128"
 md5 = "0.7.0"

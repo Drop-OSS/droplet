@@ -84,11 +84,6 @@ impl ZipVersionBackend {
     }
   }
 }
-impl Drop for ZipVersionBackend {
-  fn drop(&mut self) {
-    println!("dropping archive");
-  }
-}
 
 pub struct ZipFileWrapper {
   pub archive: Arc<ZipArchive<FileReader>>,
