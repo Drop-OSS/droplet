@@ -4,10 +4,11 @@ use std::{
 
 use tokio::io::{self, AsyncRead};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VersionFile {
   pub relative_filename: String,
   pub permission: u32,
+  pub size: u64,
 }
 
 pub trait Skippable {

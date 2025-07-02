@@ -22,7 +22,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.91",
+    "@napi-rs/cli": "3.0.0-alpha.81",
     "@types/node": "^22.13.10",
     "ava": "^6.2.0"
   },

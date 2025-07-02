@@ -60,6 +60,23 @@ pub fn list_files(path: String) -> Result<Vec<String>> {
   Ok(files.into_iter().map(|e| e.relative_filename).collect())
 }
 
+/**
+ * This is inefficient, but is used in attempt to keep the interface simple
+ */
+#[napi]
+pub fn peek_file(path: String, sub_path: String) -> Result<u32> {
+  let path = Path::new(&path);
+  let mut backend =
+    create_backend_for_path(path).ok_or(napi::Error::from_reason("No backend for path"))?;
+  let files = backend.list_files();
+
+  let file = files
+    .iter()
+    .find(|e| e.relative_filename == sub_path)
+    .ok_or(napi::Error::from_reason("Can't find file to peek"))?;
+  return Ok(file.size.try_into().unwrap());
+}
+
 #[napi]
 pub fn read_file(
   path: String,
@@ -73,6 +90,7 @@ pub fn read_file(
   let version_file = VersionFile {
     relative_filename: sub_path,
     permission: 0, // Shouldn't matter
+    size: 0,       // Shouldn't matter
   };
   // Use `?` operator for cleaner error propagation from `Option`
   let mut reader = backend.reader(&version_file)?;
@@ -87,10 +105,13 @@ pub fn read_file(
     let amount = limit - start.or(Some(0)).unwrap();
     ReadToAsyncRead {
       inner: Box::new(reader.take(amount.into())),
-      backend
+      backend,
     }
   } else {
-    ReadToAsyncRead { inner: reader, backend }
+    ReadToAsyncRead {
+      inner: reader,
+      backend,
+    }
   };
 
   // Create a FramedRead stream with BytesCodec for chunking

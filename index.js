@@ -381,6 +381,7 @@ module.exports.generateManifest = nativeBinding.generateManifest
 module.exports.generateRootCa = nativeBinding.generateRootCa
 module.exports.hasBackendForPath = nativeBinding.hasBackendForPath
 module.exports.listFiles = nativeBinding.listFiles
+module.exports.peekFile = nativeBinding.peekFile
 module.exports.readFile = nativeBinding.readFile
 module.exports.signNonce = nativeBinding.signNonce
 module.exports.verifyClientCertificate = nativeBinding.verifyClientCertificate

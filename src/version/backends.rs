@@ -3,7 +3,7 @@ use core::arch;
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::File,
-  io::{self, Read},
+  io::{self, Read, Seek},
   path::PathBuf,
   pin::Pin,
   rc::Rc,
@@ -50,6 +50,7 @@ impl VersionBackend for PathVersionBackend {
       results.push(VersionFile {
         relative_filename: relative.to_string_lossy().to_string(),
         permission: permissions,
+        size: metadata.len(),
       });
     }
 
@@ -89,7 +90,7 @@ impl Drop for ZipVersionBackend {
   }
 }
 
-struct ZipFileWrapper {
+pub struct ZipFileWrapper {
   pub archive: Arc<ZipArchive<FileReader>>,
   wayfinder: ZipArchiveEntryWayfinder,
   offset: u64,
@@ -109,12 +110,7 @@ impl Read for ZipFileWrapper {
 }
 impl Skippable for ZipFileWrapper {
   fn skip(&mut self, amount: u64) {
-    /*io::copy(
-        &mut self.inner.reader().by_ref().take(amount),
-        &mut io::sink(),
-      )
-      .unwrap();
-    */
+    self.offset += amount;
   }
 }
 impl MinimumFileObject for ZipFileWrapper {}
@@ -131,6 +127,7 @@ impl VersionBackend for ZipVersionBackend {
       results.push(VersionFile {
         relative_filename: entry.file_safe_path().unwrap().to_string(),
         permission: 744, // apparently ZIPs with permissions are not supported by this library, so we let the owner do anything
+        size: entry.uncompressed_size_hint(),
       });
     }
     results
