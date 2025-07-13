@@ -75,12 +75,17 @@ impl ZipVersionBackend {
     }
   }
 
-  pub fn new_entry(&self, entry: ZipEntry<'_, FileReader>) -> ZipFileWrapper {
+  pub fn new_entry(
+    &self,
+    entry: ZipEntry<'_, FileReader>,
+    wayfinder: ZipArchiveEntryWayfinder,
+  ) -> ZipFileWrapper {
+    let (offset, end_offset) = entry.compressed_data_range();
     ZipFileWrapper {
       archive: self.archive.clone(),
-      wayfinder: entry.entry,
-      offset: entry.body_offset,
-      end_offset: entry.body_end_offset,
+      wayfinder,
+      offset,
+      end_offset,
     }
   }
 }
@@ -97,7 +102,7 @@ impl Read for ZipFileWrapper {
     let read_size = buf.len().min((self.end_offset - self.offset) as usize);
     let read = self
       .archive
-      .reader
+      .get_ref()
       .read_at(&mut buf[..read_size], self.offset)?;
     self.offset += read as u64;
     Ok(read)
@@ -120,8 +125,8 @@ impl VersionBackend for ZipVersionBackend {
         continue;
       }
       results.push(VersionFile {
-        relative_filename: entry.file_safe_path().unwrap().to_string(),
-        permission: 744, // apparently ZIPs with permissions are not supported by this library, so we let the owner do anything
+        relative_filename: String::from(entry.file_path().try_normalize().unwrap()),
+        permission: entry.mode().permissions(),
         size: entry.uncompressed_size_hint(),
       });
     }
@@ -133,7 +138,7 @@ impl VersionBackend for ZipVersionBackend {
     let mut entries = self.archive.entries(read_buffer);
     let entry = loop {
       if let Some(v) = entries.next_entry().unwrap() {
-        if v.file_safe_path().unwrap().to_string() == file.relative_filename {
+        if v.file_path().try_normalize().unwrap().as_ref() == &file.relative_filename {
           break Some(v);
         }
       } else {
@@ -144,7 +149,7 @@ impl VersionBackend for ZipVersionBackend {
     let wayfinder = entry.wayfinder();
     let local_entry = self.archive.get_entry(wayfinder).unwrap();
 
-    let wrapper = self.new_entry(local_entry);
+    let wrapper = self.new_entry(local_entry, wayfinder);
 
     Some(Box::new(wrapper))
   }

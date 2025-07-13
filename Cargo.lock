@@ -629,7 +629,9 @@ dependencies = [
 
 [[package]]
 name = "rawzip"
-version = "0.2.0"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e512201a808c46ad2a0c810057db306d66b58d5516304548d2445a53db933499"
 
 [[package]]
 name = "rcgen"
