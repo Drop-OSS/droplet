@@ -15,9 +15,9 @@ export declare function listFiles(path: string): Array<string>
 /**
  * This is inefficient, but is used in attempt to keep the interface simple
  */
-export declare function peekFile(path: string, subPath: string): number
+export declare function peekFile(path: string, subPath: string): bigint
 
-export declare function readFile(path: string, subPath: string, start?: number | undefined | null, end?: number | undefined | null): ReadableStream<Buffer> | null
+export declare function readFile(path: string, subPath: string, start?: bigint | undefined | null, end?: bigint | undefined | null): ReadableStream<Buffer> | null
 
 export declare function signNonce(privateKey: string, nonce: string): string
 

@@ -64,7 +64,7 @@ pub fn list_files(path: String) -> Result<Vec<String>> {
  * This is inefficient, but is used in attempt to keep the interface simple
  */
 #[napi]
-pub fn peek_file(path: String, sub_path: String) -> Result<u32> {
+pub fn peek_file(path: String, sub_path: String) -> Result<u64> {
   let path = Path::new(&path);
   let mut backend =
     create_backend_for_path(path).ok_or(napi::Error::from_reason("No backend for path"))?;
@@ -82,8 +82,8 @@ pub fn read_file(
   path: String,
   sub_path: String,
   env: &Env,
-  start: Option<u32>,
-  end: Option<u32>,
+  start: Option<BigInt>,
+  end: Option<BigInt>,
 ) -> Option<ReadableStream<'_, BufferSlice<'_>>> {
   let path = Path::new(&path);
   let mut backend = create_backend_for_path(path).unwrap();
@@ -96,13 +96,13 @@ pub fn read_file(
   let mut reader = backend.reader(&version_file)?;
 
   // Skip the 'start' amount of bytes without seek
-  if let Some(skip) = start {
-    reader.skip(skip.into());
+  if let Some(skip) = start.clone() {
+    reader.skip(skip.get_u64().1.into());
     // io::copy(&mut reader.by_ref().take(skip.into()), &mut io::sink()).unwrap();
   }
 
   let async_reader = if let Some(limit) = end {
-    let amount = limit - start.or(Some(0)).unwrap();
+    let amount = limit.get_u64().1 - start.map_or(Some(0), |v| Some(v.get_u64().1)).unwrap();
     ReadToAsyncRead {
       inner: Box::new(reader.take(amount.into())),
       backend,

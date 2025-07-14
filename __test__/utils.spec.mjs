@@ -53,7 +53,7 @@ test("read file offset", async (t) => {
   const testString = "0123456789";
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
-  const stream = droplet.readFile(dirName, "TESTFILE", 1, 4);
+  const stream = droplet.readFile(dirName, "TESTFILE", BigInt(1), BigInt(4));
 
   let finalString = "";
 
