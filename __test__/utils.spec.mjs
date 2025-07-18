@@ -23,6 +23,24 @@ test("check alt thread util", async (t) => {
   t.pass();
 });
 
+test("list files", async (t) => {
+  const dirName = "./.listfiles";
+  if (fs.existsSync(dirName)) fs.rmSync(dirName, { recursive: true });
+  fs.mkdirSync(dirName, { recursive: true });
+  fs.mkdirSync(dirName + "/subdir", { recursive: true });
+  fs.mkdirSync(dirName + "/subddir", { recursive: true });
+
+  fs.writeFileSync(dirName + "/root.txt", "root");
+  fs.writeFileSync(dirName + "/subdir/one.txt", "the first subdir");
+  fs.writeFileSync(dirName + "/subddir/two.txt", "the second");
+
+  const files = droplet.listFiles(dirName);
+
+  t.assert(files.sort().join("\n"), ["root.txt", "subddir/two.txt", "subdir/one.txt"].join("\n"));
+
+  fs.rmSync(dirName, { recursive: true });
+});
+
 test("read file", async (t) => {
   const dirName = "./.test2";
   if (fs.existsSync(dirName)) fs.rmSync(dirName, { recursive: true });
