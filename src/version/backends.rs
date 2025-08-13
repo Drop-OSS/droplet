@@ -121,7 +121,7 @@ impl<'a> Read for ZipFileWrapper<'a> {
 }
 impl<'a> Skippable for ZipFileWrapper<'a> {
   fn skip(&mut self, amount: u64) {
-    io::copy(&mut self.reader.by_ref().take(amount), &mut Sink::default()).unwrap();
+    io::copy(&mut self.take(amount), &mut Sink::default()).unwrap();
   }
 }
 impl<'a> MinimumFileObject for ZipFileWrapper<'a> {}
