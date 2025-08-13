@@ -1,6 +1,6 @@
 {
   "name": "@drop-oss/droplet",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
@@ -27,7 +27,14 @@
     "ava": "^6.2.0"
   },
   "ava": {
-    "timeout": "3m"
+    "timeout": "3m",
+    "extensions": [
+      "cjs",
+      "mjs",
+      "js",
+      "ts",
+      "mts"
+    ]
   },
   "engines": {
     "node": ">= 10"
@@ -44,5 +51,8 @@
   "packageManager": "yarn@4.7.0",
   "repository": {
     "url": "git+https://github.com/Drop-OSS/droplet.git"
+  },
+  "dependencies": {
+    "tsimp": "^2.0.12"
   }
 }

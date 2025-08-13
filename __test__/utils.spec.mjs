@@ -2,7 +2,7 @@ import test from "ava";
 import fs from "node:fs";
 import path from "path";
 
-import droplet, { generateManifest } from "../index.js";
+import droplet, { DropletHandler, generateManifest } from "../index.js";
 
 test("check alt thread util", async (t) => {
   let endtime1, endtime2;
@@ -34,9 +34,13 @@ test("list files", async (t) => {
   fs.writeFileSync(dirName + "/subdir/one.txt", "the first subdir");
   fs.writeFileSync(dirName + "/subddir/two.txt", "the second");
 
-  const files = droplet.listFiles(dirName);
+  const dropletHandler = new DropletHandler();
+  const files = dropletHandler.listFiles(dirName);
 
-  t.assert(files.sort().join("\n"), ["root.txt", "subddir/two.txt", "subdir/one.txt"].join("\n"));
+  t.assert(
+    files.sort().join("\n"),
+    ["root.txt", "subddir/two.txt", "subdir/one.txt"].join("\n")
+  );
 
   fs.rmSync(dirName, { recursive: true });
 });
@@ -50,11 +54,13 @@ test("read file", async (t) => {
 
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
-  const stream = droplet.readFile(dirName, "TESTFILE");
+  const dropletHandler = new DropletHandler();
+
+  const stream = dropletHandler.readFile(dirName, "TESTFILE");
 
   let finalString = "";
 
-  for await (const chunk of stream) {
+  for await (const chunk of stream.getStream()) {
     // Do something with each 'chunk'
     finalString += String.fromCharCode.apply(null, chunk);
   }
@@ -71,11 +77,12 @@ test("read file offset", async (t) => {
   const testString = "0123456789";
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
-  const stream = droplet.readFile(dirName, "TESTFILE", BigInt(1), BigInt(4));
+  const dropletHandler = new DropletHandler();
+  const stream = dropletHandler.readFile(dirName, "TESTFILE", BigInt(1), BigInt(4));
 
   let finalString = "";
 
-  for await (const chunk of stream) {
+  for await (const chunk of stream.getStream()) {
     // Do something with each 'chunk'
     finalString += String.fromCharCode.apply(null, chunk);
   }
@@ -90,10 +97,12 @@ test("read file offset", async (t) => {
 });
 
 test("zip file reader", async (t) => {
-  return t.pass();
+  t.timeout(10_000);
+  const dropletHandler = new DropletHandler();
   const manifest = JSON.parse(
     await new Promise((r, e) =>
       generateManifest(
+        dropletHandler,
         "./assets/TheGame.zip",
         (_, __) => {},
         (_, __) => {},
@@ -102,17 +111,20 @@ test("zip file reader", async (t) => {
     )
   );
 
-  console.log(manifest);
+  const stream = dropletHandler.readFile(
+    "./assets/TheGame.zip",
+    "setup.exe",
+    BigInt(10),
+    BigInt(20)
+  );
 
-  return t.pass();
-  const stream = droplet.readFile("./assets/TheGame.zip", "TheGame/setup.exe");
 
-  let finalString;
-  for await (const chunk of stream) {
-    console.log(`read chunk ${chunk}`);
+  let finalString = "";
+  for await (const chunk of stream.getStream()) {
     // Do something with each 'chunk'
-    finalString += String.fromCharCode.apply(null, chunk);
+    finalString = String.fromCharCode.apply(null, chunk);
+    if(finalString.length > 100) break;
   }
 
-  console.log(finalString);
+  t.pass();
 });

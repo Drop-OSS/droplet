@@ -2,7 +2,7 @@ import test from "ava";
 import fs from "node:fs";
 import path from "path";
 
-import { generateManifest, listFiles } from "../index.js";
+import { DropletHandler, generateManifest } from "../index.js";
 
 test("numerous small file", async (t) => {
   // Setup test dir
@@ -18,9 +18,12 @@ test("numerous small file", async (t) => {
     fs.writeFileSync(fileName, i.toString());
   }
 
+  const dropletHandler = new DropletHandler();
+
   const manifest = JSON.parse(
     await new Promise((r, e) =>
       generateManifest(
+        dropletHandler,
         dirName,
         (_, __) => {},
         (_, __) => {},
@@ -56,7 +59,6 @@ test("numerous small file", async (t) => {
 
 test.skip("performance test", async (t) => {
   t.timeout(5 * 60 * 1000);
-  return t.pass();
   const dirName = "./.test/pt";
   if (fs.existsSync(dirName)) fs.rmSync(dirName, { recursive: true });
   fs.mkdirSync(dirName, { recursive: true });
@@ -73,9 +75,12 @@ test.skip("performance test", async (t) => {
     randomStream.on("end", r);
   });
 
+  const dropletHandler = new DropletHandler();
+
   const start = Date.now();
   await new Promise((r, e) =>
     generateManifest(
+      dropletHandler,
       dirName,
       (_, __) => {},
       (_, __) => {},

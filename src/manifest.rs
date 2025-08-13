@@ -13,8 +13,7 @@ use napi::{
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::version::utils::create_backend_for_path;
-
+use crate::version::{types::VersionBackend, utils::DropletHandler};
 
 const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 
@@ -36,15 +35,18 @@ pub fn call_alt_thread_func(tsfn: Arc<ThreadsafeFunction<()>>) -> Result<(), Str
 }
 
 #[napi]
-pub fn generate_manifest(
+pub fn generate_manifest<'a>(
+  droplet_handler: &mut DropletHandler,
   dir: String,
   progress_sfn: ThreadsafeFunction<i32>,
   log_sfn: ThreadsafeFunction<String>,
   callback_sfn: ThreadsafeFunction<String>,
-) -> Result<(), String> {
+) -> Result<()> {
+  let backend: &mut Box<dyn VersionBackend + Send> =
+    droplet_handler.create_backend_for_path(dir).ok_or(napi::Error::from_reason("Could not create backend for path."))?;
+  let backend: &'static mut Box<dyn VersionBackend + Send> =
+    unsafe { std::mem::transmute(backend) };
   thread::spawn(move || {
-    let base_dir = Path::new(&dir);
-    let mut backend = create_backend_for_path(base_dir).unwrap();
     let files = backend.list_files();
 
     // Filepath to chunk data
@@ -54,7 +56,7 @@ pub fn generate_manifest(
     let mut i: i32 = 0;
 
     for version_file in files {
-      let raw_reader= backend.reader(&version_file).unwrap();
+      let raw_reader = backend.reader(&version_file).unwrap();
       let mut reader = BufReader::with_capacity(CHUNK_SIZE, raw_reader);
 
       let mut chunk_data = ChunkData {

@@ -1,24 +1,34 @@
-use core::arch;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
-  fs::File,
-  io::{self, Read, Seek},
-  path::PathBuf,
-  pin::Pin,
-  rc::Rc,
+  fs::{self, metadata, File},
+  io::{self, Read, Sink},
+  path::{Path, PathBuf},
   sync::Arc,
 };
 
+use flate2::read::DeflateDecoder;
 use rawzip::{
-  FileReader, ReaderAt, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, RECOMMENDED_BUFFER_SIZE,
+  FileReader, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, ZipReader, RECOMMENDED_BUFFER_SIZE,
 };
 
-use crate::version::{
-  types::{MinimumFileObject, Skippable, VersionBackend, VersionFile},
-  utils::_list_files,
-};
+use crate::version::types::{MinimumFileObject, Skippable, VersionBackend, VersionFile};
 
+pub fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
+  if metadata(path).unwrap().is_dir() {
+    let paths = fs::read_dir(path).unwrap();
+    for path_result in paths {
+      let full_path = path_result.unwrap().path();
+      if metadata(&full_path).unwrap().is_dir() {
+        _list_files(vec, &full_path);
+      } else {
+        vec.push(full_path);
+      }
+    }
+  }
+}
+
+#[derive(Clone)]
 pub struct PathVersionBackend {
   pub base_dir: PathBuf,
 }
@@ -30,40 +40,55 @@ impl VersionBackend for PathVersionBackend {
     let mut results = Vec::new();
 
     for pathbuf in vec.iter() {
-      let file = File::open(pathbuf.clone()).unwrap();
       let relative = pathbuf.strip_prefix(self.base_dir.clone()).unwrap();
-      let metadata = file.try_clone().unwrap().metadata().unwrap();
-      let permission_object = metadata.permissions();
-      let permissions = {
-        let perm: u32;
-        #[cfg(target_family = "unix")]
-        {
-          perm = permission_object.mode();
-        }
-        #[cfg(not(target_family = "unix"))]
-        {
-          perm = 0
-        }
-        perm
-      };
 
-      results.push(VersionFile {
-        relative_filename: relative.to_string_lossy().to_string(),
-        permission: permissions,
-        size: metadata.len(),
-      });
+      results.push(
+        self
+          .peek_file(relative.to_str().unwrap().to_owned())
+          .unwrap(),
+      );
     }
 
     results
   }
 
-  fn reader(&mut self, file: &VersionFile) -> Option<Box<(dyn MinimumFileObject + 'static)>> {
+  fn reader(&mut self, file: &VersionFile) -> Option<Box<dyn MinimumFileObject + 'static>> {
     let file = File::open(self.base_dir.join(file.relative_filename.clone())).ok()?;
 
     return Some(Box::new(file));
   }
+
+  fn peek_file(&mut self, sub_path: String) -> Option<VersionFile> {
+    let pathbuf = self.base_dir.join(sub_path.clone());
+    if !pathbuf.exists() {
+      return None;
+    };
+
+    let file = File::open(pathbuf.clone()).unwrap();
+    let metadata = file.try_clone().unwrap().metadata().unwrap();
+    let permission_object = metadata.permissions();
+    let permissions = {
+      let perm: u32;
+      #[cfg(target_family = "unix")]
+      {
+        perm = permission_object.mode();
+      }
+      #[cfg(not(target_family = "unix"))]
+      {
+        perm = 0
+      }
+      perm
+    };
+
+    Some(VersionFile {
+      relative_filename: sub_path,
+      permission: permissions,
+      size: metadata.len(),
+    })
+  }
 }
 
+#[derive(Clone)]
 pub struct ZipVersionBackend {
   archive: Arc<ZipArchive<FileReader>>,
 }
@@ -75,46 +100,51 @@ impl ZipVersionBackend {
     }
   }
 
-  pub fn new_entry(
+  pub fn new_entry<'archive>(
     &self,
-    entry: ZipEntry<'_, FileReader>,
-    wayfinder: ZipArchiveEntryWayfinder,
-  ) -> ZipFileWrapper {
-    let (offset, end_offset) = entry.compressed_data_range();
-    ZipFileWrapper {
-      archive: self.archive.clone(),
-      wayfinder,
-      offset,
-      end_offset,
-    }
+    entry: ZipEntry<'archive, FileReader>,
+  ) -> ZipFileWrapper<'archive> {
+    let deflater = DeflateDecoder::new(entry.reader());
+    ZipFileWrapper { reader: deflater }
   }
 }
 
-pub struct ZipFileWrapper {
-  pub archive: Arc<ZipArchive<FileReader>>,
-  wayfinder: ZipArchiveEntryWayfinder,
-  offset: u64,
-  end_offset: u64,
+pub struct ZipFileWrapper<'archive> {
+  reader: DeflateDecoder<ZipReader<'archive, FileReader>>,
 }
 
-impl Read for ZipFileWrapper {
+impl<'a> Read for ZipFileWrapper<'a> {
   fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-    let read_size = buf.len().min((self.end_offset - self.offset) as usize);
-    let read = self
-      .archive
-      .get_ref()
-      .read_at(&mut buf[..read_size], self.offset)?;
-    self.offset += read as u64;
+    let read = self.reader.read(buf)?;
     Ok(read)
   }
 }
-impl Skippable for ZipFileWrapper {
+impl<'a> Skippable for ZipFileWrapper<'a> {
   fn skip(&mut self, amount: u64) {
-    self.offset += amount;
+    io::copy(&mut self.reader.by_ref().take(amount), &mut Sink::default()).unwrap();
   }
 }
-impl MinimumFileObject for ZipFileWrapper {}
+impl<'a> MinimumFileObject for ZipFileWrapper<'a> {}
 
+impl ZipVersionBackend {
+  fn find_wayfinder(&mut self, filename: &str) -> Option<ZipArchiveEntryWayfinder> {
+    let read_buffer = &mut [0u8; RECOMMENDED_BUFFER_SIZE];
+    let mut entries = self.archive.entries(read_buffer);
+    let entry = loop {
+      if let Some(v) = entries.next_entry().unwrap() {
+        if v.file_path().try_normalize().unwrap().as_ref() == filename {
+          break Some(v);
+        }
+      } else {
+        break None;
+      }
+    }?;
+
+    let wayfinder = entry.wayfinder();
+
+    Some(wayfinder)
+  }
+}
 impl VersionBackend for ZipVersionBackend {
   fn list_files(&mut self) -> Vec<VersionFile> {
     let mut results = Vec::new();
@@ -133,24 +163,22 @@ impl VersionBackend for ZipVersionBackend {
     results
   }
 
-  fn reader(&mut self, file: &VersionFile) -> Option<Box<(dyn MinimumFileObject)>> {
-    let read_buffer = &mut [0u8; RECOMMENDED_BUFFER_SIZE];
-    let mut entries = self.archive.entries(read_buffer);
-    let entry = loop {
-      if let Some(v) = entries.next_entry().unwrap() {
-        if v.file_path().try_normalize().unwrap().as_ref() == &file.relative_filename {
-          break Some(v);
-        }
-      } else {
-        break None;
-      }
-    }?;
-
-    let wayfinder = entry.wayfinder();
+  fn reader(&mut self, file: &VersionFile) -> Option<Box<dyn MinimumFileObject + '_>> {
+    let wayfinder = self.find_wayfinder(&file.relative_filename)?;
     let local_entry = self.archive.get_entry(wayfinder).unwrap();
 
-    let wrapper = self.new_entry(local_entry, wayfinder);
+    let wrapper = self.new_entry(local_entry);
 
     Some(Box::new(wrapper))
+  }
+
+  fn peek_file(&mut self, sub_path: String) -> Option<VersionFile> {
+    let entry = self.find_wayfinder(&sub_path)?;
+
+    Some(VersionFile {
+      relative_filename: sub_path,
+      permission: 0,
+      size: entry.uncompressed_size_hint(),
+    })
   }
 }
