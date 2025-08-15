@@ -12,6 +12,7 @@ __metadata:
     "@napi-rs/cli": "npm:3.0.0-alpha.91"
     "@types/node": "npm:^22.13.10"
     ava: "npm:^6.2.0"
+    pretty-bytes: "npm:^7.0.1"
     tsimp: "npm:^2.0.12"
   languageName: unknown
   linkType: soft
@@ -2429,6 +2430,13 @@ __metadata:
   dependencies:
     irregular-plurals: "npm:^3.3.0"
   checksum: 10c0/26bb622b8545fcfd47bbf56fbcca66c08693708a232e403fa3589e00003c56c14231ac57c7588ca5db83ef4be1f61383402c4ea954000768f779f8aef6eb6da8
+  languageName: node
+  linkType: hard
+
+"pretty-bytes@npm:^7.0.1":
+  version: 7.0.1
+  resolution: "pretty-bytes@npm:7.0.1"
+  checksum: 10c0/14ffb503d2de3588042c722848062a4897e6faece1694e0c83ba5669ec003d73311d946d50d2b3c6099a6a306760011b8446ee3cf9cf86eca13a454a8f1c47cb
   languageName: node
   linkType: hard
 

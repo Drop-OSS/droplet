@@ -24,7 +24,9 @@
   "devDependencies": {
     "@napi-rs/cli": "3.0.0-alpha.91",
     "@types/node": "^22.13.10",
-    "ava": "^6.2.0"
+    "ava": "^6.2.0",
+    "pretty-bytes": "^7.0.1",
+    "tsimp": "^2.0.12"
   },
   "ava": {
     "timeout": "3m",
@@ -51,8 +53,5 @@
   "packageManager": "yarn@4.7.0",
   "repository": {
     "url": "git+https://github.com/Drop-OSS/droplet.git"
-  },
-  "dependencies": {
-    "tsimp": "^2.0.12"
   }
 }

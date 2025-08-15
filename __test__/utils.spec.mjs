@@ -1,6 +1,7 @@
 import test from "ava";
 import fs from "node:fs";
 import path from "path";
+import prettyBytes from "pretty-bytes";
 
 import droplet, { DropletHandler, generateManifest } from "../index.js";
 
@@ -78,7 +79,12 @@ test("read file offset", async (t) => {
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
   const dropletHandler = new DropletHandler();
-  const stream = dropletHandler.readFile(dirName, "TESTFILE", BigInt(1), BigInt(4));
+  const stream = dropletHandler.readFile(
+    dirName,
+    "TESTFILE",
+    BigInt(1),
+    BigInt(4)
+  );
 
   let finalString = "";
 
@@ -96,37 +102,40 @@ test("read file offset", async (t) => {
   fs.rmSync(dirName, { recursive: true });
 });
 
-test("zip file reader", async (t) => {
-  return t.pass();
-
-  t.timeout(10_000);
+test("zip speed test", async (t) => {
+  t.timeout(100_000_000);
   const dropletHandler = new DropletHandler();
-  const manifest = JSON.parse(
-    await new Promise((r, e) =>
-      generateManifest(
-        dropletHandler,
-        "./assets/TheGame.zip",
-        (_, __) => {},
-        (_, __) => {},
-        (err, manifest) => (err ? e(err) : r(manifest))
-      )
-    )
-  );
 
-  const stream = dropletHandler.readFile(
-    "./assets/TheGame.zip",
-    "setup.exe",
-    BigInt(10),
-    BigInt(20)
-  );
+  const stream = dropletHandler.readFile("./assets/TheGame.zip", "setup.exe");
 
+  let totalRead = 0;
+  let totalSeconds = 0;
 
-  let finalString = "";
+  let lastTime = process.hrtime.bigint();
+  const timeThreshold = BigInt(1_000_000_000);
+  let runningTotal = 0;
+  let runningTime = BigInt(0);
   for await (const chunk of stream.getStream()) {
     // Do something with each 'chunk'
-    finalString = String.fromCharCode.apply(null, chunk);
-    if(finalString.length > 100) break;
+    const currentTime = process.hrtime.bigint();
+    const timeDiff = currentTime - lastTime;
+    lastTime = currentTime;
+    runningTime += timeDiff;
+
+    runningTotal += chunk.length;
+
+    if (runningTime >= timeThreshold) {
+      console.log(`${prettyBytes(runningTotal)}/s`);
+      totalRead += runningTotal;
+      totalSeconds += 1;
+      runningTime = BigInt(0);
+      runningTotal = 0;
+    }
   }
+
+  const roughAverage = totalRead / totalSeconds;
+
+  console.log(`total rough average: ${prettyBytes(roughAverage)}/s`)
 
   t.pass();
 });
