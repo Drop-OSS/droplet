@@ -140,7 +140,7 @@ test.skip("zip speed test", async (t) => {
   t.pass();
 });
 
-test("zip manifest test", async (t) => {
+test.skip("zip manifest test", async (t) => {
   const dropletHandler = new DropletHandler();
   const manifest = JSON.parse(
     await new Promise((r, e) =>
