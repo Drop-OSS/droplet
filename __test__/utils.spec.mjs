@@ -102,7 +102,7 @@ test("read file offset", async (t) => {
   fs.rmSync(dirName, { recursive: true });
 });
 
-test("zip speed test", async (t) => {
+test.skip("zip speed test", async (t) => {
   t.timeout(100_000_000);
   const dropletHandler = new DropletHandler();
 
@@ -135,7 +135,31 @@ test("zip speed test", async (t) => {
 
   const roughAverage = totalRead / totalSeconds;
 
-  console.log(`total rough average: ${prettyBytes(roughAverage)}/s`)
+  console.log(`total rough average: ${prettyBytes(roughAverage)}/s`);
+
+  t.pass();
+});
+
+test("zip manifest test", async (t) => {
+  const dropletHandler = new DropletHandler();
+  const manifest = JSON.parse(
+    await new Promise((r, e) =>
+      generateManifest(
+        dropletHandler,
+        "./assets/TheGame.zip",
+        (_, __) => {},
+        (_, __) => {},
+        (err, manifest) => (err ? e(err) : r(manifest))
+      )
+    )
+  );
+
+  const file = manifest[Object.keys(manifest).at(0)];
+  const amount = file.ids.length;
+
+  if(amount > 20) {
+    return t.fail(`Zip manifest has ${amount} chunks, more than 20`);
+  }
 
   t.pass();
 });

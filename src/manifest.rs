@@ -1,7 +1,6 @@
 use std::{
   collections::HashMap,
   io::{BufRead, BufReader},
-  path::Path,
   sync::Arc,
   thread,
 };
@@ -42,11 +41,11 @@ pub fn generate_manifest<'a>(
   log_sfn: ThreadsafeFunction<String>,
   callback_sfn: ThreadsafeFunction<String>,
 ) -> Result<()> {
-  let backend: &mut Box<dyn VersionBackend + Send> =
-    droplet_handler.create_backend_for_path(dir).ok_or(napi::Error::from_reason("Could not create backend for path."))?;
-  let backend: &'static mut Box<dyn VersionBackend + Send> =
-    unsafe { std::mem::transmute(backend) };
-  thread::spawn(move || {
+  let backend: &mut Box<dyn VersionBackend + Send> = droplet_handler
+    .create_backend_for_path(dir)
+    .ok_or(napi::Error::from_reason(
+    "Could not create backend for path.",
+  ))?;
     let files = backend.list_files();
 
     // Filepath to chunk data
@@ -56,8 +55,8 @@ pub fn generate_manifest<'a>(
     let mut i: i32 = 0;
 
     for version_file in files {
-      let raw_reader = backend.reader(&version_file).unwrap();
-      let mut reader = BufReader::with_capacity(CHUNK_SIZE, raw_reader);
+      let reader = backend.reader(&version_file).unwrap();
+      let mut reader = BufReader::with_capacity(8128, reader);
 
       let mut chunk_data = ChunkData {
         permissions: version_file.permission,
@@ -68,12 +67,28 @@ pub fn generate_manifest<'a>(
 
       let mut chunk_index = 0;
       loop {
+        let mut length = 0;
         let mut buffer: Vec<u8> = Vec::new();
-        reader.fill_buf().unwrap().clone_into(&mut buffer);
-        let length = buffer.len();
+        let mut file_empty = false;
 
-        if length == 0 {
-          break;
+        loop {
+          let read_buf = reader.fill_buf().unwrap();
+          let buf_length = read_buf.len();
+
+          length += buf_length;
+
+          if length >= CHUNK_SIZE {
+            break;
+          }
+
+          // If we're out of data, add this chunk and then move onto the next file
+          if buf_length == 0 {
+            file_empty = true;
+            break;
+          }
+
+          buffer.extend_from_slice(read_buf);
+          reader.consume(length);
         }
 
         let chunk_id = Uuid::new_v4();
@@ -88,10 +103,14 @@ pub fn generate_manifest<'a>(
           "Processed chunk {} for {}",
           chunk_index, &version_file.relative_filename
         );
+
         log_sfn.call(Ok(log_str), ThreadsafeFunctionCallMode::Blocking);
 
-        reader.consume(length);
         chunk_index += 1;
+
+        if file_empty {
+          break;
+        }
       }
 
       chunks.insert(version_file.relative_filename, chunk_data);
@@ -105,7 +124,6 @@ pub fn generate_manifest<'a>(
       Ok(json!(chunks).to_string()),
       ThreadsafeFunctionCallMode::Blocking,
     );
-  });
 
   Ok(())
 }
