@@ -93,8 +93,6 @@ pub fn generate_manifest<'a>(
           buffer.extend_from_slice(&buf[..read]);
         }
 
-        println!("created chunk of size {}", length);
-
         let chunk_id = Uuid::new_v4();
         let checksum = md5::compute(buffer).0;
         let checksum_string = hex::encode(checksum);
