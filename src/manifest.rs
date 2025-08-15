@@ -80,17 +80,17 @@ pub fn generate_manifest<'a>(
 
           length += read;
 
-          if length >= CHUNK_SIZE {
-            break;
-          }
-
           // If we're out of data, add this chunk and then move onto the next file
           if read == 0 {
             file_empty = true;
             break;
           }
 
-          buffer.extend_from_slice(&buf[..read]);
+          buffer.extend_from_slice(&buf[0..read]);
+
+          if length >= CHUNK_SIZE {
+            break;
+          }
         }
 
         let chunk_id = Uuid::new_v4();

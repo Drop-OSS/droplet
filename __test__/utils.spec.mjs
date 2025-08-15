@@ -1,6 +1,7 @@
 import test from "ava";
 import fs from "node:fs";
 import path from "path";
+import { createHash } from "node:crypto";
 import prettyBytes from "pretty-bytes";
 
 import droplet, { DropletHandler, generateManifest } from "../index.js";
@@ -57,7 +58,12 @@ test("read file", async (t) => {
 
   const dropletHandler = new DropletHandler();
 
-  const stream = dropletHandler.readFile(dirName, "TESTFILE", BigInt(0), BigInt(testString.length));
+  const stream = dropletHandler.readFile(
+    dirName,
+    "TESTFILE",
+    BigInt(0),
+    BigInt(testString.length)
+  );
 
   let finalString = "";
 
@@ -157,6 +163,7 @@ test.skip("zip manifest test", async (t) => {
   for (const [filename, data] of Object.entries(manifest)) {
     let start = 0;
     for (const [chunkIndex, length] of data.lengths.entries()) {
+      const hash = createHash("md5");
       const stream = (
         await dropletHandler.readFile(
           "./assets/TheGame.zip",
@@ -171,6 +178,7 @@ test.skip("zip manifest test", async (t) => {
         new WritableStream({
           write(chunk) {
             streamLength += chunk.length;
+            hash.update(chunk);
           },
         })
       );
@@ -178,6 +186,12 @@ test.skip("zip manifest test", async (t) => {
       if (streamLength != length)
         return t.fail(
           `stream length for chunk index ${chunkIndex} was not expected: real: ${streamLength} vs expected: ${length}`
+        );
+
+      const digest = hash.digest("hex");
+      if (data.checksums[chunkIndex] != digest)
+        return t.fail(
+          `checksums did not match for chunk index ${chunkIndex}: real: ${digest} vs expected: ${data.checksums[chunkIndex]}`
         );
 
       start += length;
