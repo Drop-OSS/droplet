@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fs::File, io::Read, path::Path};
+use std::{
+  collections::HashMap, fs::File, path::Path
+};
 
 use napi::{bindgen_prelude::*, sys::napi_value__, tokio_stream::StreamExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -115,20 +117,16 @@ impl<'a> DropletHandler<'a> {
         size: 0,       // Shouldn't matter
       };
       // Use `?` operator for cleaner error propagation from `Option`
-      let mut reader = backend.reader(&version_file).ok_or(napi::Error::from_reason("Failed to create reader."))?;
+      let reader = backend
+        .reader(
+          &version_file,
+          start.map(|e| e.get_u64().1).unwrap_or(0),
+          end.map(|e| e.get_u64().1).unwrap_or(0),
+        )
+        .ok_or(napi::Error::from_reason("Failed to create reader."))?;
 
-      if let Some(skip) = start.clone() {
-        reader.skip(skip.get_u64().1.into());
-        // io::copy(&mut reader.by_ref().take(skip.into()), &mut io::sink()).unwrap();
-      }
-
-      let async_reader = if let Some(limit) = end {
-        let amount = limit.get_u64().1 - start.map_or(Some(0), |v| Some(v.get_u64().1)).unwrap();
-        ReadToAsyncRead {
-          inner: Box::new(reader.take(amount.into())),
-        }
-      } else {
-        ReadToAsyncRead { inner: reader }
+      let async_reader = ReadToAsyncRead {
+        inner: reader,
       };
 
       // Create a FramedRead stream with BytesCodec for chunking
@@ -147,9 +145,7 @@ impl<'a> DropletHandler<'a> {
       Ok(ReadableStream::create_with_stream_bytes(&env, stream).unwrap())
     })?;
 
-    Ok(JsDropStreamable {
-      inner: stream,
-    })
+    Ok(JsDropStreamable { inner: stream })
   }
 }
 

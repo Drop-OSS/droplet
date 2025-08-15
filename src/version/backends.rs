@@ -2,7 +2,7 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
   fs::{self, metadata, File},
-  io::{self, Read, Sink},
+  io::{self, Read, Seek, SeekFrom, Sink},
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -12,7 +12,7 @@ use rawzip::{
   FileReader, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, ZipReader, RECOMMENDED_BUFFER_SIZE,
 };
 
-use crate::version::types::{MinimumFileObject, Skippable, VersionBackend, VersionFile};
+use crate::version::types::{MinimumFileObject, VersionBackend, VersionFile};
 
 pub fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) {
   if metadata(path).unwrap().is_dir() {
@@ -52,8 +52,21 @@ impl VersionBackend for PathVersionBackend {
     results
   }
 
-  fn reader(&mut self, file: &VersionFile) -> Option<Box<dyn MinimumFileObject + 'static>> {
-    let file = File::open(self.base_dir.join(file.relative_filename.clone())).ok()?;
+  fn reader(
+    &mut self,
+    file: &VersionFile,
+    start: u64,
+    end: u64,
+  ) -> Option<Box<dyn MinimumFileObject + 'static>> {
+    let mut file = File::open(self.base_dir.join(file.relative_filename.clone())).ok()?;
+
+    if start != 0 {
+      file.seek(SeekFrom::Start(start)).ok()?;
+    }
+
+    if end != 0 {
+      return Some(Box::new(file.take(end - start)));
+    }
 
     return Some(Box::new(file));
   }
@@ -103,28 +116,53 @@ impl ZipVersionBackend {
   pub fn new_entry<'archive>(
     &self,
     entry: ZipEntry<'archive, FileReader>,
+    start: u64,
+    end: u64,
   ) -> ZipFileWrapper<'archive> {
-    let deflater = DeflateDecoder::new(entry.reader());
-    ZipFileWrapper { reader: deflater }
+    let mut deflater = DeflateDecoder::new(entry.reader());
+    if start != 0 {
+      io::copy(&mut (&mut deflater).take(start), &mut Sink::default()).unwrap();
+    }
+    ZipFileWrapper {
+      reader: deflater,
+      limit: (end - start) as usize,
+      current: 0,
+    }
   }
 }
 
 pub struct ZipFileWrapper<'archive> {
   reader: DeflateDecoder<ZipReader<'archive, FileReader>>,
+  limit: usize,
+  current: usize,
 }
 
+/**
+ * This read implemention is a result of debugging hell
+ * It should probably be replaced with a .take() call.
+ */
 impl<'a> Read for ZipFileWrapper<'a> {
   fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    let has_limit = self.limit != 0;
+
+    // End this stream if the read is the right size
+    if has_limit {
+      if self.current >= self.limit {
+        return Ok(0);
+      }
+    }
+
     let read = self.reader.read(buf)?;
-    Ok(read)
+    if self.limit != 0 {
+      self.current += read;
+      if self.current > self.limit {
+        let over = self.current - self.limit;
+        return Ok(read - over);
+      }
+    }
+    return Ok(read);
   }
 }
-impl<'a> Skippable for ZipFileWrapper<'a> {
-  fn skip(&mut self, amount: u64) {
-    io::copy(&mut self.take(amount), &mut Sink::default()).unwrap();
-  }
-}
-impl<'a> MinimumFileObject for ZipFileWrapper<'a> {}
 
 impl ZipVersionBackend {
   fn find_wayfinder(&mut self, filename: &str) -> Option<ZipArchiveEntryWayfinder> {
@@ -163,11 +201,16 @@ impl VersionBackend for ZipVersionBackend {
     results
   }
 
-  fn reader(&mut self, file: &VersionFile) -> Option<Box<dyn MinimumFileObject + '_>> {
+  fn reader(
+    &mut self,
+    file: &VersionFile,
+    start: u64,
+    end: u64,
+  ) -> Option<Box<dyn MinimumFileObject + '_>> {
     let wayfinder = self.find_wayfinder(&file.relative_filename)?;
     let local_entry = self.archive.get_entry(wayfinder).unwrap();
 
-    let wrapper = self.new_entry(local_entry);
+    let wrapper = self.new_entry(local_entry, start, end);
 
     Some(Box::new(wrapper))
   }

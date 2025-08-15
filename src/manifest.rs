@@ -1,9 +1,4 @@
-use std::{
-  collections::HashMap,
-  io::{BufRead, BufReader},
-  sync::Arc,
-  thread,
-};
+use std::{collections::HashMap, sync::Arc, thread};
 
 use napi::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
@@ -46,6 +41,14 @@ pub fn generate_manifest<'a>(
     .ok_or(napi::Error::from_reason(
     "Could not create backend for path.",
   ))?;
+
+  // This is unsafe (obviously)
+  // But it's allg as long the DropletHandler doesn't get
+  // dropped while we're generating the manifest.
+  let backend: &'static mut Box<dyn VersionBackend + Send> =
+    unsafe { std::mem::transmute(backend) };
+
+  thread::spawn(move || {
     let files = backend.list_files();
 
     // Filepath to chunk data
@@ -54,9 +57,10 @@ pub fn generate_manifest<'a>(
     let total: i32 = files.len() as i32;
     let mut i: i32 = 0;
 
+    let mut buf = [0u8; 1024 * 16];
+
     for version_file in files {
-      let reader = backend.reader(&version_file).unwrap();
-      let mut reader = BufReader::with_capacity(8128, reader);
+      let mut reader = backend.reader(&version_file, 0, 0).unwrap();
 
       let mut chunk_data = ChunkData {
         permissions: version_file.permission,
@@ -72,24 +76,24 @@ pub fn generate_manifest<'a>(
         let mut file_empty = false;
 
         loop {
-          let read_buf = reader.fill_buf().unwrap();
-          let buf_length = read_buf.len();
+          let read = reader.read(&mut buf).unwrap();
 
-          length += buf_length;
+          length += read;
 
           if length >= CHUNK_SIZE {
             break;
           }
 
           // If we're out of data, add this chunk and then move onto the next file
-          if buf_length == 0 {
+          if read == 0 {
             file_empty = true;
             break;
           }
 
-          buffer.extend_from_slice(read_buf);
-          reader.consume(length);
+          buffer.extend_from_slice(&buf[..read]);
         }
+
+        println!("created chunk of size {}", length);
 
         let chunk_id = Uuid::new_v4();
         let checksum = md5::compute(buffer).0;
@@ -124,6 +128,7 @@ pub fn generate_manifest<'a>(
       Ok(json!(chunks).to_string()),
       ThreadsafeFunctionCallMode::Blocking,
     );
+  });
 
   Ok(())
 }

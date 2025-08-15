@@ -57,7 +57,7 @@ test("read file", async (t) => {
 
   const dropletHandler = new DropletHandler();
 
-  const stream = dropletHandler.readFile(dirName, "TESTFILE");
+  const stream = dropletHandler.readFile(dirName, "TESTFILE", BigInt(0), BigInt(testString.length));
 
   let finalString = "";
 
@@ -154,11 +154,34 @@ test.skip("zip manifest test", async (t) => {
     )
   );
 
-  const file = manifest[Object.keys(manifest).at(0)];
-  const amount = file.ids.length;
+  for (const [filename, data] of Object.entries(manifest)) {
+    let start = 0;
+    for (const [chunkIndex, length] of data.lengths.entries()) {
+      const stream = (
+        await dropletHandler.readFile(
+          "./assets/TheGame.zip",
+          filename,
+          BigInt(start),
+          BigInt(start + length)
+        )
+      ).getStream();
 
-  if(amount > 20) {
-    return t.fail(`Zip manifest has ${amount} chunks, more than 20`);
+      let streamLength = 0;
+      await stream.pipeTo(
+        new WritableStream({
+          write(chunk) {
+            streamLength += chunk.length;
+          },
+        })
+      );
+
+      if (streamLength != length)
+        return t.fail(
+          `stream length for chunk index ${chunkIndex} was not expected: real: ${streamLength} vs expected: ${length}`
+        );
+
+      start += length;
+    }
   }
 
   t.pass();
