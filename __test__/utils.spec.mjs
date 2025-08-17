@@ -200,3 +200,21 @@ test.skip("zip manifest test", async (t) => {
 
   t.pass();
 });
+
+test.skip("partially compress zip test", async (t) => {
+  const dropletHandler = new DropletHandler();
+
+  const manifest = JSON.parse(
+    await new Promise((r, e) =>
+      generateManifest(
+        dropletHandler,
+        "./assets/my horror game.zip",
+        (_, __) => {},
+        (_, __) => {},
+        (err, manifest) => (err ? e(err) : r(manifest))
+      )
+    )
+  );
+
+  return t.pass();
+});

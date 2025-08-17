@@ -9,7 +9,8 @@ use std::{
 
 use flate2::read::DeflateDecoder;
 use rawzip::{
-  FileReader, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, ZipReader, RECOMMENDED_BUFFER_SIZE,
+  CompressionMethod, FileReader, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry,
+  ZipVerifier, RECOMMENDED_BUFFER_SIZE,
 };
 
 use crate::version::types::{MinimumFileObject, VersionBackend, VersionFile};
@@ -116,15 +117,27 @@ impl ZipVersionBackend {
   pub fn new_entry<'archive>(
     &self,
     entry: ZipEntry<'archive, FileReader>,
+    compression_method: CompressionMethod,
     start: u64,
     end: u64,
   ) -> ZipFileWrapper<'archive> {
-    let mut deflater = DeflateDecoder::new(entry.reader());
+    let deflater: Box<dyn Read + Send + 'archive> = match compression_method {
+      CompressionMethod::Store => Box::new(entry.reader()),
+      CompressionMethod::Deflate => Box::new(DeflateDecoder::new(entry.reader())),
+      CompressionMethod::Deflate64 => Box::new(DeflateDecoder::new(entry.reader())),
+      _ => panic!(
+        "unsupported decompression algorithm: {:?}",
+        compression_method
+      ),
+    };
+
+    let mut verifier = entry.verifying_reader(deflater);
     if start != 0 {
-      io::copy(&mut (&mut deflater).take(start), &mut Sink::default()).unwrap();
+      io::copy(&mut (&mut verifier).take(start), &mut Sink::default()).unwrap();
     }
+
     ZipFileWrapper {
-      reader: deflater,
+      reader: verifier,
       limit: (end - start) as usize,
       current: 0,
     }
@@ -132,7 +145,7 @@ impl ZipVersionBackend {
 }
 
 pub struct ZipFileWrapper<'archive> {
-  reader: DeflateDecoder<ZipReader<'archive, FileReader>>,
+  reader: ZipVerifier<'archive, Box<dyn Read + Send + 'archive>, FileReader>,
   limit: usize,
   current: usize,
 }
@@ -163,9 +176,13 @@ impl<'a> Read for ZipFileWrapper<'a> {
     return Ok(read);
   }
 }
+//impl<'a> MinimumFileObject for ZipFileWrapper<'a> {}
 
 impl ZipVersionBackend {
-  fn find_wayfinder(&mut self, filename: &str) -> Option<ZipArchiveEntryWayfinder> {
+  fn find_wayfinder(
+    &mut self,
+    filename: &str,
+  ) -> Option<(ZipArchiveEntryWayfinder, CompressionMethod)> {
     let read_buffer = &mut [0u8; RECOMMENDED_BUFFER_SIZE];
     let mut entries = self.archive.entries(read_buffer);
     let entry = loop {
@@ -180,7 +197,7 @@ impl ZipVersionBackend {
 
     let wayfinder = entry.wayfinder();
 
-    Some(wayfinder)
+    Some((wayfinder, entry.compression_method()))
   }
 }
 impl VersionBackend for ZipVersionBackend {
@@ -207,16 +224,16 @@ impl VersionBackend for ZipVersionBackend {
     start: u64,
     end: u64,
   ) -> Option<Box<dyn MinimumFileObject + '_>> {
-    let wayfinder = self.find_wayfinder(&file.relative_filename)?;
+    let (wayfinder, compression_method) = self.find_wayfinder(&file.relative_filename)?;
     let local_entry = self.archive.get_entry(wayfinder).unwrap();
 
-    let wrapper = self.new_entry(local_entry, start, end);
+    let wrapper = self.new_entry(local_entry, compression_method, start, end);
 
-    Some(Box::new(wrapper))
+    Some(Box::new(wrapper) as Box<dyn MinimumFileObject>)
   }
 
   fn peek_file(&mut self, sub_path: String) -> Option<VersionFile> {
-    let entry = self.find_wayfinder(&sub_path)?;
+    let (entry, _) = self.find_wayfinder(&sub_path)?;
 
     Some(VersionFile {
       relative_filename: sub_path,
