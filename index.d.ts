@@ -15,6 +15,19 @@ export declare class JsDropStreamable {
   getStream(): any
 }
 
+export declare class Script {
+
+}
+
+export declare class ScriptEngine {
+  constructor()
+  buildRahiScript(content: string): Script
+  buildLuaScript(content: string): Script
+  buildJsScript(content: string): Script
+  execute(script: Script): void
+  fetchStrings(script: Script): Array<string>
+}
+
 export declare function callAltThreadFunc(tsfn: ((err: Error | null, ) => any)): void
 
 export declare function generateClientCertificate(clientId: string, clientName: string, rootCa: string, rootCaPrivate: string): Array<string>

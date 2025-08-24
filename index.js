@@ -378,6 +378,8 @@ if (!nativeBinding) {
 module.exports = nativeBinding
 module.exports.DropletHandler = nativeBinding.DropletHandler
 module.exports.JsDropStreamable = nativeBinding.JsDropStreamable
+module.exports.Script = nativeBinding.Script
+module.exports.ScriptEngine = nativeBinding.ScriptEngine
 module.exports.callAltThreadFunc = nativeBinding.callAltThreadFunc
 module.exports.generateClientCertificate = nativeBinding.generateClientCertificate
 module.exports.generateManifest = nativeBinding.generateManifest

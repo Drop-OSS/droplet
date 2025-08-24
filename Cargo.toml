@@ -16,7 +16,6 @@ napi = { version = "3.0.0-beta.11", default-features = false, features = [
 ] }
 napi-derive = "3.0.0-beta.11"
 hex = "0.4.3"
-serde_json = "1.0.128"
 md5 = "0.7.0"
 time-macros = "0.2.22"
 time = "0.3.41"
@@ -27,6 +26,10 @@ tokio-util = { version = "0.7.15", features = ["codec"] }
 rawzip = "0.3.0"
 dyn-clone = "1.0.20"
 flate2 = "1.1.2"
+rhai = "1.22.2"
+mlua = { version = "0.11.2", features = ["luajit"] }
+boa_engine = "0.20.0"
+serde_json = "1.0.143"
 
 [package.metadata.patch]
 crates = ["rawzip"]
