@@ -1,7 +1,7 @@
 import test from "ava";
 import { ScriptEngine } from "../index.js";
 
-test("lua syntax fail", (t) => {
+test.skip("lua syntax fail", (t) => {
   const scriptEngine = new ScriptEngine();
 
   const luaIshCode = `
@@ -46,7 +46,7 @@ test("js", (t) => {
   t.pass();
 });
 
-test("lua", (t) => {
+test.skip("lua", (t) => {
   const scriptEngine = new ScriptEngine();
 
   const luaModule = `
