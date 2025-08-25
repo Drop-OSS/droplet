@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use napi::Error;
 use rcgen::{
   CertificateParams, DistinguishedName, IsCa, KeyPair, KeyUsagePurpose, PublicKeyData,
   SubjectPublicKeyInfo,

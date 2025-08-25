@@ -93,3 +93,47 @@ test.skip("performance test", async (t) => {
 
   fs.rmSync(dirName, { recursive: true });
 });
+
+test("special characters", async (t) => {
+  // Setup test dir
+  const dirName = "./.test/sc";
+  if (fs.existsSync(dirName)) fs.rmSync(dirName, { recursive: true });
+  fs.mkdirSync(dirName, { recursive: true });
+
+  // Config
+  const fileNames = ["Technická podpora.rtf", "Servicio técnico.rtf"];
+
+  for (let i = 0; i < fileNames.length; i++) {
+    const fileName = path.join(dirName, fileNames[i]);
+    fs.writeFileSync(fileName, i.toString());
+  }
+
+  const dropletHandler = new DropletHandler();
+
+  const manifest = JSON.parse(
+    await new Promise((r, e) =>
+      generateManifest(
+        dropletHandler,
+        dirName,
+        (_, __) => {},
+        (_, __) => {},
+        (err, manifest) => (err ? e(err) : r(manifest))
+      )
+    )
+  );
+
+  // Check the first few checksums
+  const checksums = [
+    "cfcd208495d565ef66e7dff9f98764da",
+    "c4ca4238a0b923820dcc509a6f75849b",
+  ];
+  for (let index in checksums) {
+    const entry = manifest[fileNames[index]];
+    if (!entry) return t.fail(`manifest missing file ${index}`);
+
+    const checksum = entry.checksums[0];
+    t.is(checksum, checksums[index], `checksums do not match for ${index}`);
+  }
+
+  fs.rmSync(dirName, { recursive: true });
+});

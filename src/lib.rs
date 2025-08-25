@@ -3,7 +3,6 @@
 #![deny(clippy::panic)]
 #![feature(trait_alias)]
 
-use std::{any, io};
 
 pub mod manifest;
 pub mod script;
