@@ -38,6 +38,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "anyhow"
+version = "1.0.99"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,6 +483,7 @@ dependencies = [
 name = "droplet"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "boa_engine",
  "dyn-clone",
  "flate2",
@@ -925,6 +932,7 @@ version = "3.0.0-beta.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca1763658b41abbdf10caaa63b74e58f4ec62d52b889a558e0af6f3638cc9426"
 dependencies = [
+ "anyhow",
  "bitflags",
  "ctor",
  "futures-core",

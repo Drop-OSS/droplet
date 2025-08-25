@@ -35,7 +35,7 @@ pub fn generate_manifest<'a>(
   progress_sfn: ThreadsafeFunction<i32>,
   log_sfn: ThreadsafeFunction<String>,
   callback_sfn: ThreadsafeFunction<String>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
   let backend: &mut Box<dyn VersionBackend + Send> = droplet_handler
     .create_backend_for_path(dir)
     .ok_or(napi::Error::from_reason(
@@ -49,83 +49,94 @@ pub fn generate_manifest<'a>(
     unsafe { std::mem::transmute(backend) };
 
   thread::spawn(move || {
-    let files = backend.list_files();
+    let callback_borrow = &callback_sfn;
 
-    // Filepath to chunk data
-    let mut chunks: HashMap<String, ChunkData> = HashMap::new();
+    let mut inner = move || -> Result<()> {
+      let files = backend.list_files()?;
 
-    let total: i32 = files.len() as i32;
-    let mut i: i32 = 0;
+      // Filepath to chunk data
+      let mut chunks: HashMap<String, ChunkData> = HashMap::new();
 
-    let mut buf = [0u8; 1024 * 16];
+      let total: i32 = files.len() as i32;
+      let mut i: i32 = 0;
 
-    for version_file in files {
-      let mut reader = backend.reader(&version_file, 0, 0).unwrap();
+      let mut buf = [0u8; 1024 * 16];
 
-      let mut chunk_data = ChunkData {
-        permissions: version_file.permission,
-        ids: Vec::new(),
-        checksums: Vec::new(),
-        lengths: Vec::new(),
-      };
+      for version_file in files {
+        let mut reader = backend.reader(&version_file, 0, 0)?;
 
-      let mut chunk_index = 0;
-      loop {
-        let mut length = 0;
-        let mut buffer: Vec<u8> = Vec::new();
-        let mut file_empty = false;
+        let mut chunk_data = ChunkData {
+          permissions: version_file.permission,
+          ids: Vec::new(),
+          checksums: Vec::new(),
+          lengths: Vec::new(),
+        };
 
+        let mut chunk_index = 0;
         loop {
-          let read = reader.read(&mut buf).unwrap();
+          let mut length = 0;
+          let mut buffer: Vec<u8> = Vec::new();
+          let mut file_empty = false;
 
-          length += read;
+          loop {
+            let read = reader.read(&mut buf)?;
 
-          // If we're out of data, add this chunk and then move onto the next file
-          if read == 0 {
-            file_empty = true;
-            break;
+            length += read;
+
+            // If we're out of data, add this chunk and then move onto the next file
+            if read == 0 {
+              file_empty = true;
+              break;
+            }
+
+            buffer.extend_from_slice(&buf[0..read]);
+
+            if length >= CHUNK_SIZE {
+              break;
+            }
           }
 
-          buffer.extend_from_slice(&buf[0..read]);
+          let chunk_id = Uuid::new_v4();
+          let checksum = md5::compute(buffer).0;
+          let checksum_string = hex::encode(checksum);
 
-          if length >= CHUNK_SIZE {
+          chunk_data.ids.push(chunk_id.to_string());
+          chunk_data.checksums.push(checksum_string);
+          chunk_data.lengths.push(length);
+
+          let log_str = format!(
+            "Processed chunk {} for {}",
+            chunk_index, &version_file.relative_filename
+          );
+
+          log_sfn.call(Ok(log_str), ThreadsafeFunctionCallMode::Blocking);
+
+          chunk_index += 1;
+
+          if file_empty {
             break;
           }
         }
 
-        let chunk_id = Uuid::new_v4();
-        let checksum = md5::compute(buffer).0;
-        let checksum_string = hex::encode(checksum);
+        chunks.insert(version_file.relative_filename, chunk_data);
 
-        chunk_data.ids.push(chunk_id.to_string());
-        chunk_data.checksums.push(checksum_string);
-        chunk_data.lengths.push(length);
-
-        let log_str = format!(
-          "Processed chunk {} for {}",
-          chunk_index, &version_file.relative_filename
-        );
-
-        log_sfn.call(Ok(log_str), ThreadsafeFunctionCallMode::Blocking);
-
-        chunk_index += 1;
-
-        if file_empty {
-          break;
-        }
+        i += 1;
+        let progress = i * 100 / total;
+        progress_sfn.call(Ok(progress), ThreadsafeFunctionCallMode::Blocking);
       }
 
-      chunks.insert(version_file.relative_filename, chunk_data);
+      callback_borrow.call(
+        Ok(json!(chunks).to_string()),
+        ThreadsafeFunctionCallMode::Blocking,
+      );
 
-      i += 1;
-      let progress = i * 100 / total;
-      progress_sfn.call(Ok(progress), ThreadsafeFunctionCallMode::Blocking);
+      Ok(())
+    };
+
+    let result = inner();
+    if let Err(generate_err) = result {
+      callback_borrow.call(Err(generate_err), ThreadsafeFunctionCallMode::Blocking);
     }
-
-    callback_sfn.call(
-      Ok(json!(chunks).to_string()),
-      ThreadsafeFunctionCallMode::Blocking,
-    );
   });
 
   Ok(())
