@@ -10,11 +10,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use flate2::read::DeflateDecoder;
-use rawzip::{
-  CompressionMethod, FileReader, ZipArchive, ZipArchiveEntryWayfinder, ZipEntry, ZipVerifier,
-  RECOMMENDED_BUFFER_SIZE,
-};
 
 use crate::version::types::{MinimumFileObject, VersionBackend, VersionFile};
 
