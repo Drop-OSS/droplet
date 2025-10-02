@@ -48,6 +48,8 @@ pub fn generate_manifest<'a>(
   let backend: &'static mut Box<dyn VersionBackend + Send> =
     unsafe { std::mem::transmute(backend) };
 
+    let required_single_file = backend.require_whole_files();
+
   thread::spawn(move || {
     let callback_borrow = &callback_sfn;
 
@@ -91,7 +93,7 @@ pub fn generate_manifest<'a>(
 
             buffer.extend_from_slice(&buf[0..read]);
 
-            if length >= CHUNK_SIZE {
+            if length >= CHUNK_SIZE && !required_single_file {
               break;
             }
           }

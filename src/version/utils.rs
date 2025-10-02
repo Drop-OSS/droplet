@@ -1,11 +1,16 @@
-use std::{collections::HashMap, fs::File, path::Path};
+use std::{
+  collections::HashMap,
+  fs::File,
+  path::Path,
+  process::{Command, ExitStatus},
+};
 
 use anyhow::anyhow;
 use napi::{bindgen_prelude::*, sys::napi_value__, tokio_stream::StreamExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 use crate::version::{
-  backends::{PathVersionBackend, ZipVersionBackend},
+  backends::{PathVersionBackend, ZipVersionBackend, SEVEN_ZIP_INSTALLED},
   types::{ReadToAsyncRead, VersionBackend, VersionFile},
 };
 
@@ -27,9 +32,16 @@ pub fn create_backend_constructor<'a>(
     }));
   };
 
-  if path.to_string_lossy().ends_with(".zip") {
-    let f = File::open(path.to_path_buf()).ok()?;
-    return Some(Box::new(|| Ok(Box::new(ZipVersionBackend::new(f)?))));
+  if *SEVEN_ZIP_INSTALLED {
+    let mut test = Command::new("7z");
+    test.args(vec!["t", path.to_str().expect("invalid utf path")]);
+    let status = test.status().ok()?;
+    if status.code().unwrap_or(1) == 0 {
+      let buf = path.to_path_buf();
+      return Some(Box::new(move || {
+        Ok(Box::new(ZipVersionBackend::new(buf)?))
+      }));
+    }
   }
 
   None

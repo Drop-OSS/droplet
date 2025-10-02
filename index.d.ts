@@ -21,8 +21,7 @@ export declare class Script {
 
 export declare class ScriptEngine {
   constructor()
-  buildRahiScript(content: string): Script
-  buildLuaScript(content: string): Script
+  buildRhaiScript(content: string): Script
   buildJsScript(content: string): Script
   execute(script: Script): void
   fetchStrings(script: Script): Array<string>

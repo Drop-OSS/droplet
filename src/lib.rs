@@ -2,6 +2,7 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 #![feature(trait_alias)]
+#![feature(iterator_try_collect)]
 
 
 pub mod manifest;

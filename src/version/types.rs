@@ -41,6 +41,7 @@ impl<'a> AsyncRead for ReadToAsyncRead<'a> {
 }
 
 pub trait VersionBackend: DynClone {
+  fn require_whole_files(&self) -> bool;
   fn list_files(&mut self) -> anyhow::Result<Vec<VersionFile>>;
   fn peek_file(&mut self, sub_path: String) -> anyhow::Result<VersionFile>;
   fn reader(
