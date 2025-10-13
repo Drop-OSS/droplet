@@ -168,18 +168,21 @@ impl VersionBackend for ZipVersionBackend {
     let files = raw_result.split("\n").filter(|v| v.len() > 0).map(|v| v.split(" ").filter(|v| v.len() > 0));
     let mut results = Vec::new();
 
-    for mut file in files {
-      let (date, time, attrs, size, compress, name) = (
-        file.next().unwrap(),
-        file.next().unwrap(),
-        file.next().unwrap(),
-        file.next().unwrap(),
-        file.next().unwrap(),
-        file.next().unwrap(),
+    for file in files {
+      let mut values = file.collect::<Vec<&str>>();
+      values.reverse();
+      let mut iter = values.iter();
+      let (name, compress, size, attrs) = (
+        iter.next().expect("failed to fetch name"),
+        iter.next().expect("failed to read compressed size"),
+        iter.next().expect("failed to read file size"),
+        iter.next().expect("failed to fetch attrs")
       );
-      println!("got line: {} {} {} {} {} {}", date, time, attrs, size, compress, name);
+      if attrs.starts_with("D") {
+        continue;
+      }
       results.push(VersionFile {
-        relative_filename: name.to_owned(),
+        relative_filename: name.to_owned().to_owned(),
         permission: 0,
         size: size.parse().unwrap(),
       });
