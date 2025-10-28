@@ -183,7 +183,7 @@ impl VersionBackend for ZipVersionBackend {
       }
       results.push(VersionFile {
         relative_filename: name.to_owned().to_owned(),
-        permission: 744, // owner r/w/x, everyone else, read
+        permission: 0o744, // owner r/w/x, everyone else, read
         size: size.parse().unwrap(),
       });
     }
