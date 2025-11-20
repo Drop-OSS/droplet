@@ -126,12 +126,15 @@ impl ZipVersionBackend {
 
 pub struct ZipFileWrapper {
   command: Child,
-  reader: BufReader<ChildStdout>
+  reader: BufReader<ChildStdout>,
 }
 
 impl ZipFileWrapper {
   pub fn new(mut command: Child) -> Self {
-    let stdout = command.stdout.take().expect("failed to access stdout of 7z");
+    let stdout = command
+      .stdout
+      .take()
+      .expect("failed to access stdout of 7z");
     let reader = BufReader::new(stdout);
     ZipFileWrapper { command, reader }
   }
@@ -148,9 +151,9 @@ impl Read for ZipFileWrapper {
 }
 
 impl Drop for ZipFileWrapper {
-    fn drop(&mut self) {
-        self.command.wait().expect("failed to wait for 7z exit");
-    }
+  fn drop(&mut self) {
+    self.command.wait().expect("failed to wait for 7z exit");
+  }
 }
 
 impl VersionBackend for ZipVersionBackend {
@@ -165,24 +168,28 @@ impl VersionBackend for ZipVersionBackend {
       ));
     }
     let raw_result = String::from_utf8(result.stdout)?;
-    let files = raw_result.split("\n").filter(|v| v.len() > 0).map(|v| v.split(" ").filter(|v| v.len() > 0));
+    let files = raw_result
+      .split("\n")
+      .filter(|v| v.len() > 0)
+      .map(|v| v.split(" ").filter(|v| v.len() > 0));
     let mut results = Vec::new();
 
     for file in files {
-      let mut values = file.collect::<Vec<&str>>();
-      values.reverse();
+      let values = file.collect::<Vec<&str>>();
       let mut iter = values.iter();
-      let (name, compress, size, attrs) = (
-        iter.next().expect("failed to fetch name"),
-        iter.next().expect("failed to read compressed size"),
-        iter.next().expect("failed to read file size"),
-        iter.next().expect("failed to fetch attrs")
+      let (date, time, attrs, size, compress, name) = (
+        iter.next().expect("failed to read date"),
+        iter.next().expect("failed to read time"),
+        iter.next().expect("failed to read attrs"),
+        iter.next().expect("failed to read size"),
+        iter.next().expect("failed to read compress"),
+        iter.collect::<Vec<&&str>>(),
       );
       if attrs.starts_with("D") {
         continue;
       }
       results.push(VersionFile {
-        relative_filename: name.to_owned().to_owned(),
+        relative_filename: name.into_iter().map(|v| *v).fold(String::new(), |a, b| a + b + " ").trim_end().to_owned(),
         permission: 0o744, // owner r/w/x, everyone else, read
         size: size.parse().unwrap(),
       });
@@ -199,7 +206,10 @@ impl VersionBackend for ZipVersionBackend {
   ) -> anyhow::Result<Box<dyn MinimumFileObject + '_>> {
     let mut read_command = Command::new("7z");
     read_command.args(vec!["e", "-so", &self.path, &file.relative_filename]);
-    let output = read_command.stdout(Stdio::piped()).spawn().expect("failed to spawn 7z");
+    let output = read_command
+      .stdout(Stdio::piped())
+      .spawn()
+      .expect("failed to spawn 7z");
     Ok(Box::new(ZipFileWrapper::new(output)))
   }
 

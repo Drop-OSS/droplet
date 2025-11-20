@@ -146,7 +146,7 @@ test.skip("zip speed test", async (t) => {
   t.pass();
 });
 
-test.skip("zip manifest test", async (t) => {
+test("zip manifest test", async (t) => {
   const dropletHandler = new DropletHandler();
   const manifest = JSON.parse(
     await new Promise((r, e) =>
@@ -161,6 +161,7 @@ test.skip("zip manifest test", async (t) => {
   );
 
   for (const [filename, data] of Object.entries(manifest)) {
+    console.log(filename);
     let start = 0;
     for (const [chunkIndex, length] of data.lengths.entries()) {
       const hash = createHash("md5");
