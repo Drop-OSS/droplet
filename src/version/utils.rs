@@ -38,9 +38,7 @@ pub fn create_backend_constructor<'a>(
     let status = test.status().ok()?;
     if status.code().unwrap_or(1) == 0 {
       let buf = path.to_path_buf();
-      return Some(Box::new(move || {
-        Ok(Box::new(ZipVersionBackend::new(buf)?))
-      }));
+      return Some(Box::new(move || Ok(Box::new(ZipVersionBackend::new(buf)?))));
     }
   }
 
@@ -111,7 +109,7 @@ impl<'a> DropletHandler<'a> {
     Ok(file.size)
   }
 
-  #[napi]
+  #[napi(ts_return_type = "ReadableStream")]
   pub fn read_file(
     &mut self,
     reference: Reference<DropletHandler<'static>>,
@@ -120,7 +118,7 @@ impl<'a> DropletHandler<'a> {
     env: Env,
     start: Option<BigInt>,
     end: Option<BigInt>,
-  ) -> anyhow::Result<JsDropStreamable> {
+  ) -> anyhow::Result<*mut napi_value__> {
     let stream = reference.share_with(env, |handler| {
       let backend = handler
         .create_backend_for_path(path)
@@ -149,25 +147,9 @@ impl<'a> DropletHandler<'a> {
             // Apply Result::map_err to transform Err(std::io::Error) to Err(napi::Error)
             .map_err(napi::Error::from) // napi::Error implements From<tokio::io::Error>
         });
-      // Create the napi-rs ReadableStream from the tokio_stream::Stream
-      // The unwrap() here means if stream creation fails, it will panic.
-      // For a production system, consider returning Result<Option<...>> and handling this.
       ReadableStream::create_with_stream_bytes(&env, stream)
     })?;
 
-    Ok(JsDropStreamable { inner: stream })
-  }
-}
-
-#[napi]
-pub struct JsDropStreamable {
-  inner: SharedReference<DropletHandler<'static>, ReadableStream<'static, BufferSlice<'static>>>,
-}
-
-#[napi]
-impl JsDropStreamable {
-  #[napi]
-  pub fn get_stream(&self) -> *mut napi_value__ {
-    self.inner.raw()
+    Ok(stream.raw())
   }
 }

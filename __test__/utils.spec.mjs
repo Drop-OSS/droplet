@@ -67,7 +67,7 @@ test("read file", async (t) => {
 
   let finalString = "";
 
-  for await (const chunk of stream.getStream()) {
+  for await (const chunk of stream) {
     // Do something with each 'chunk'
     finalString += String.fromCharCode.apply(null, chunk);
   }
@@ -94,7 +94,7 @@ test("read file offset", async (t) => {
 
   let finalString = "";
 
-  for await (const chunk of stream.getStream()) {
+  for await (const chunk of stream) {
     // Do something with each 'chunk'
     finalString += String.fromCharCode.apply(null, chunk);
   }
@@ -121,7 +121,7 @@ test.skip("zip speed test", async (t) => {
   const timeThreshold = BigInt(1_000_000_000);
   let runningTotal = 0;
   let runningTime = BigInt(0);
-  for await (const chunk of stream.getStream()) {
+  for await (const chunk of stream) {
     // Do something with each 'chunk'
     const currentTime = process.hrtime.bigint();
     const timeDiff = currentTime - lastTime;
@@ -147,55 +147,60 @@ test.skip("zip speed test", async (t) => {
 });
 
 test("zip manifest test", async (t) => {
+  const zipFiles = fs.readdirSync("./assets").filter((v) => v.endsWith(".zip"));
   const dropletHandler = new DropletHandler();
-  const manifest = JSON.parse(
-    await new Promise((r, e) =>
-      generateManifest(
-        dropletHandler,
-        "./assets/TheGame.zip",
-        (_, __) => {},
-        (_, __) => {},
-        (err, manifest) => (err ? e(err) : r(manifest))
-      )
-    )
-  );
 
-  for (const [filename, data] of Object.entries(manifest)) {
-    console.log(filename);
-    let start = 0;
-    for (const [chunkIndex, length] of data.lengths.entries()) {
-      const hash = createHash("md5");
-      const stream = (
-        await dropletHandler.readFile(
-          "./assets/TheGame.zip",
-          filename,
-          BigInt(start),
-          BigInt(start + length)
+  for (const zipFile of zipFiles) {
+    console.log("generating manifest for " + zipFile);
+    const manifest = JSON.parse(
+      await new Promise((r, e) =>
+        generateManifest(
+          dropletHandler,
+          "./assets/" + zipFile,
+          (_, __) => {},
+          (_, __) => {},
+          (err, manifest) => (err ? e(err) : r(manifest))
         )
-      ).getStream();
+      )
+    );
 
-      let streamLength = 0;
-      await stream.pipeTo(
-        new WritableStream({
-          write(chunk) {
-            streamLength += chunk.length;
-            hash.update(chunk);
-          },
-        })
-      );
+    for (const [filename, data] of Object.entries(manifest)) {
+      let start = 0;
+      for (const [chunkIndex, length] of data.lengths.entries()) {
+        const hash = createHash("md5");
+        const stream = (
+          await dropletHandler.readFile(
+            "./assets/" + zipFile,
+            filename,
+            BigInt(start),
+            BigInt(start + length)
+          )
+        );
+        console.log(stream);
 
-      if (streamLength != length)
-        return t.fail(
-          `stream length for chunk index ${chunkIndex} was not expected: real: ${streamLength} vs expected: ${length}`
+        let streamLength = 0;
+        await stream.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              streamLength += chunk.length;
+              hash.update(chunk);
+            },
+          })
         );
 
-      const digest = hash.digest("hex");
-      if (data.checksums[chunkIndex] != digest)
-        return t.fail(
-          `checksums did not match for chunk index ${chunkIndex}: real: ${digest} vs expected: ${data.checksums[chunkIndex]}`
-        );
+        if (streamLength != length)
+          return t.fail(
+            `stream length for chunk index ${chunkIndex} was not expected: real: ${streamLength} vs expected: ${length}`
+          );
 
-      start += length;
+        const digest = hash.digest("hex");
+        if (data.checksums[chunkIndex] != digest)
+          return t.fail(
+            `checksums did not match for chunk index ${chunkIndex}: real: ${digest} vs expected: ${data.checksums[chunkIndex]}`
+          );
+
+        start += length;
+      }
     }
   }
 

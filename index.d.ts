@@ -8,11 +8,7 @@ export declare class DropletHandler {
   hasBackendForPath(path: string): boolean
   listFiles(path: string): Array<string>
   peekFile(path: string, subPath: string): bigint
-  readFile(path: string, subPath: string, start?: bigint | undefined | null, end?: bigint | undefined | null): JsDropStreamable
-}
-
-export declare class JsDropStreamable {
-  getStream(): any
+  readFile(path: string, subPath: string, start?: bigint | undefined | null, end?: bigint | undefined | null): ReadableStream
 }
 
 export declare class Script {
