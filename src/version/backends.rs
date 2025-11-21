@@ -111,6 +111,17 @@ impl VersionBackend for PathVersionBackend {
 
 pub static SEVEN_ZIP_INSTALLED: LazyLock<bool> =
   LazyLock::new(|| Command::new("7z").output().is_ok());
+// https://7-zip.opensource.jp/chm/general/formats.htm
+// Intentionally repeated some because it's a trivial cost and it's easier to directly copy from the docs above
+pub const SUPPORTED_FILE_EXTENSIONS: [&str; 89] = [
+  "7z", "bz2", "bzip2", "tbz2", "tbz", "gz", "gzip", "tgz", "tar", "wim", "swm", "esd", "xz",
+  "txz", "zip", "zipx", "jar", "xpi", "odt", "ods", "docx", "xlsx", "epub", "apm", "ar", "a",
+  "deb", "lib", "arj", "cab", "chm", "chw", "chi", "chq", "msi", "msp", "doc", "xls", "ppt",
+  "cpio", "cramfs", "dmg", "ext", "ext2", "ext3", "ext4", "img", "fat", "img", "hfs", "hfsx",
+  "hxs", "hxr", "hxq", "hxw", "lit", "ihex", "iso", "img", "lzh", "lha", "lzma", "mbr", "mslz",
+  "mub", "nsis", "ntfs", "img", "mbr", "rar", "r00", "rpm", "ppmd", "qcow", "qcow2", "qcow2c",
+  "squashfs", "udf", "iso", "img", "scap", "uefif", "vdi", "vhd", "vmdk", "xar", "pkg", "z", "taz",
+];
 
 #[derive(Clone)]
 pub struct ZipVersionBackend {
@@ -189,7 +200,12 @@ impl VersionBackend for ZipVersionBackend {
         continue;
       }
       results.push(VersionFile {
-        relative_filename: name.into_iter().map(|v| *v).fold(String::new(), |a, b| a + b + " ").trim_end().to_owned(),
+        relative_filename: name
+          .into_iter()
+          .map(|v| *v)
+          .fold(String::new(), |a, b| a + b + " ")
+          .trim_end()
+          .to_owned(),
         permission: 0o744, // owner r/w/x, everyone else, read
         size: size.parse().unwrap(),
       });
