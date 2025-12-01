@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "droplet"
-version = "0.7.0"
+version = "0.3.5"
 license = "AGPL-3.0-only"
 description = "Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-level utils for Drop"
 [lib]
@@ -9,30 +9,23 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "3.0.0-beta.11", default-features = false, features = ["napi6", "async", "web_stream", "error_anyhow"] }
+napi = { version = "3.0.0-beta.11", default-features = false, features = [
+    "napi6",
+    "async",
+    "web_stream",
+    "error_anyhow",
+] }
 napi-derive = "3.0.0-beta.11"
 hex = "0.4.3"
 md5 = "0.7.0"
-time-macros = "0.2.22"
-time = "0.3.41"
-webpki = "0.22.4"
-ring = "0.17.14"
 tokio = { version = "1.45.1", features = ["fs", "io-util"] }
 tokio-util = { version = "0.7.15", features = ["codec"] }
-dyn-clone = "1.0.20"
 rhai = "1.22.2"
 # mlua = { version = "0.11.2", features = ["luajit"] }
 boa_engine = "0.20.0"
 serde_json = "1.0.143"
-anyhow = "1.0.99"
-
-[dependencies.x509-parser]
-version = "0.17.0"
-features = ["verify"]
-
-[dependencies.rcgen]
-version = "0.13.2"
-features = ["crypto", "pem", "x509-parser"]
+anyhow = "*"
+droplet-rs = { git = "https://github.com/Drop-OSS/droplet-rs.git" }
 
 [dependencies.serde]
 version = "1.0.210"

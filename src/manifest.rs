@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, thread};
 
+use droplet_rs::versions::types::VersionBackend;
 use napi::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Result,
@@ -7,7 +8,7 @@ use napi::{
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::version::{types::VersionBackend, utils::DropletHandler};
+use crate::version::DropletHandler;
 
 const CHUNK_SIZE: usize = 1024 * 1024 * 64;
 

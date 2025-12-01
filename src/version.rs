@@ -6,60 +6,10 @@ use std::{
 };
 
 use anyhow::anyhow;
+use droplet_rs::versions::{create_backend_constructor, types::{ReadToAsyncRead, VersionBackend, VersionFile}};
 use napi::{bindgen_prelude::*, sys::napi_value__, tokio_stream::StreamExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
 
-use crate::version::{
-  backends::{
-    PathVersionBackend, ZipVersionBackend, SEVEN_ZIP_INSTALLED, SUPPORTED_FILE_EXTENSIONS,
-  },
-  types::{ReadToAsyncRead, VersionBackend, VersionFile},
-};
-
-/**
- * Append new backends here
- */
-pub fn create_backend_constructor<'a>(
-  path: &Path,
-) -> Option<Box<dyn FnOnce() -> Result<Box<dyn VersionBackend + Send + 'a>>>> {
-  if !path.exists() {
-    return None;
-  }
-
-  let is_directory = path.is_dir();
-  if is_directory {
-    let base_dir = path.to_path_buf();
-    return Some(Box::new(move || {
-      Ok(Box::new(PathVersionBackend { base_dir }))
-    }));
-  };
-
-  if *SEVEN_ZIP_INSTALLED {
-    /*
-    Slow 7zip integrity test
-    let mut test = Command::new("7z");
-    test.args(vec!["t", path.to_str().expect("invalid utf path")]);
-    let status = test.status().ok()?;
-    if status.code().unwrap_or(1) == 0 {
-      let buf = path.to_path_buf();
-      return Some(Box::new(move || Ok(Box::new(ZipVersionBackend::new(buf)?))));
-    }
-     */
-    // Fast filename-based test
-    if let Some(extension) = path.extension().and_then(|v| v.to_str()) {
-      let supported = SUPPORTED_FILE_EXTENSIONS
-        .iter()
-        .find(|v| ***v == *extension)
-        .is_some();
-      if supported {
-        let buf = path.to_path_buf();
-        return Some(Box::new(move || Ok(Box::new(ZipVersionBackend::new(buf)?))));
-      }
-    }
-  }
-
-  None
-}
 
 /**
  * Persistent object so we can cache things between commands
