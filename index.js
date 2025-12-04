@@ -376,13 +376,16 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
-module.exports.DropletHandler = nativeBinding.DropletHandler
 module.exports.Script = nativeBinding.Script
 module.exports.ScriptEngine = nativeBinding.ScriptEngine
 module.exports.callAltThreadFunc = nativeBinding.callAltThreadFunc
 module.exports.generateClientCertificate = nativeBinding.generateClientCertificate
 module.exports.generateManifest = nativeBinding.generateManifest
 module.exports.generateRootCa = nativeBinding.generateRootCa
+module.exports.hasBackendForPath = nativeBinding.hasBackendForPath
+module.exports.listFiles = nativeBinding.listFiles
+module.exports.peekFile = nativeBinding.peekFile
+module.exports.readFile = nativeBinding.readFile
 module.exports.signNonce = nativeBinding.signNonce
 module.exports.verifyClientCertificate = nativeBinding.verifyClientCertificate
 module.exports.verifyNonce = nativeBinding.verifyNonce

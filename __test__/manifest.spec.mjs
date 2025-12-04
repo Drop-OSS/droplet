@@ -2,7 +2,7 @@ import test from "ava";
 import fs from "node:fs";
 import path from "path";
 
-import { DropletHandler, generateManifest } from "../index.js";
+import { generateManifest } from "../index.js";
 
 test("numerous small file", async (t) => {
   // Setup test dir
@@ -18,17 +18,11 @@ test("numerous small file", async (t) => {
     fs.writeFileSync(fileName, i.toString());
   }
 
-  const dropletHandler = new DropletHandler();
-
   const manifest = JSON.parse(
-    await new Promise((r, e) =>
-      generateManifest(
-        dropletHandler,
-        dirName,
-        (_, __) => {},
-        (_, __) => {},
-        (err, manifest) => (err ? e(err) : r(manifest))
-      )
+    await generateManifest(
+      dirName,
+      (_, __) => {},
+      (_, __) => {}
     )
   );
 
@@ -75,17 +69,11 @@ test.skip("performance test", async (t) => {
     randomStream.on("end", r);
   });
 
-  const dropletHandler = new DropletHandler();
-
   const start = Date.now();
-  await new Promise((r, e) =>
-    generateManifest(
-      dropletHandler,
-      dirName,
-      (_, __) => {},
-      (_, __) => {},
-      (err, manifest) => (err ? e(err) : r(manifest))
-    )
+  await generateManifest(
+    dirName,
+    (_, __) => {},
+    (_, __) => {}
   );
   const end = Date.now();
 
@@ -108,17 +96,11 @@ test("special characters", async (t) => {
     fs.writeFileSync(fileName, i.toString());
   }
 
-  const dropletHandler = new DropletHandler();
-
   const manifest = JSON.parse(
-    await new Promise((r, e) =>
-      generateManifest(
-        dropletHandler,
-        dirName,
-        (_, __) => {},
-        (_, __) => {},
-        (err, manifest) => (err ? e(err) : r(manifest))
-      )
+    await generateManifest(
+      dirName,
+      (_, __) => {},
+      (_, __) => {}
     )
   );
 

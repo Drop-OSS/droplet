@@ -4,7 +4,7 @@ import path from "path";
 import { createHash } from "node:crypto";
 import prettyBytes from "pretty-bytes";
 
-import droplet, { DropletHandler, generateManifest } from "../index.js";
+import droplet, { generateManifest, listFiles, readFile } from "../index.js";
 
 test("check alt thread util", async (t) => {
   let endtime1, endtime2;
@@ -17,6 +17,7 @@ test("check alt thread util", async (t) => {
   await new Promise((r) => setTimeout(r, 500));
   endtime2 = Date.now();
 
+  if (!endtime1) return t.fail("alt thread function never ran");
   const difference = endtime2 - endtime1;
   if (difference >= 600) {
     t.fail("likely isn't multithreaded, difference: " + difference);
@@ -36,8 +37,7 @@ test("list files", async (t) => {
   fs.writeFileSync(dirName + "/subdir/one.txt", "the first subdir");
   fs.writeFileSync(dirName + "/subddir/two.txt", "the second");
 
-  const dropletHandler = new DropletHandler();
-  const files = dropletHandler.listFiles(dirName);
+  const files = await listFiles(dirName);
 
   t.assert(
     files.sort().join("\n"),
@@ -56,9 +56,7 @@ test("read file", async (t) => {
 
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
-  const dropletHandler = new DropletHandler();
-
-  const stream = dropletHandler.readFile(
+  const stream = await readFile(
     dirName,
     "TESTFILE",
     BigInt(0),
@@ -84,13 +82,7 @@ test("read file offset", async (t) => {
   const testString = "0123456789";
   fs.writeFileSync(dirName + "/TESTFILE", testString);
 
-  const dropletHandler = new DropletHandler();
-  const stream = dropletHandler.readFile(
-    dirName,
-    "TESTFILE",
-    BigInt(1),
-    BigInt(4)
-  );
+  const stream = await readFile(dirName, "TESTFILE", BigInt(1), BigInt(4));
 
   let finalString = "";
 
@@ -110,9 +102,8 @@ test("read file offset", async (t) => {
 
 test.skip("zip speed test", async (t) => {
   t.timeout(100_000_000);
-  const dropletHandler = new DropletHandler();
 
-  const stream = dropletHandler.readFile("./assets/TheGame.zip", "setup.exe");
+  const stream = await readFile("./assets/TheGame.zip", "setup.exe");
 
   let totalRead = 0;
   let totalSeconds = 0;
@@ -148,19 +139,14 @@ test.skip("zip speed test", async (t) => {
 
 test("zip manifest test", async (t) => {
   const zipFiles = fs.readdirSync("./assets").filter((v) => v.endsWith(".zip"));
-  const dropletHandler = new DropletHandler();
 
   for (const zipFile of zipFiles) {
     console.log("generating manifest for " + zipFile);
     const manifest = JSON.parse(
-      await new Promise((r, e) =>
-        generateManifest(
-          dropletHandler,
-          "./assets/" + zipFile,
-          (_, __) => {},
-          (_, __) => {},
-          (err, manifest) => (err ? e(err) : r(manifest))
-        )
+      await generateManifest(
+        "./assets/" + zipFile,
+        (_, __) => {},
+        (_, __) => {}
       )
     );
 
@@ -168,15 +154,12 @@ test("zip manifest test", async (t) => {
       let start = 0;
       for (const [chunkIndex, length] of data.lengths.entries()) {
         const hash = createHash("md5");
-        const stream = (
-          await dropletHandler.readFile(
-            "./assets/" + zipFile,
-            filename,
-            BigInt(start),
-            BigInt(start + length)
-          )
+        const stream = await readFile(
+          "./assets/" + zipFile,
+          filename,
+          BigInt(start),
+          BigInt(start + length)
         );
-        console.log(stream);
 
         let streamLength = 0;
         await stream.pipeTo(
@@ -208,17 +191,11 @@ test("zip manifest test", async (t) => {
 });
 
 test.skip("partially compress zip test", async (t) => {
-  const dropletHandler = new DropletHandler();
-
   const manifest = JSON.parse(
-    await new Promise((r, e) =>
-      generateManifest(
-        dropletHandler,
-        "./assets/my horror game.zip",
-        (_, __) => {},
-        (_, __) => {},
-        (err, manifest) => (err ? e(err) : r(manifest))
-      )
+    await generateManifest(
+      "./assets/my horror game.zip",
+      (_, __) => {},
+      (_, __) => {}
     )
   );
 
