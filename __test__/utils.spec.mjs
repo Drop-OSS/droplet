@@ -149,6 +149,9 @@ test("zip manifest test", async (t) => {
         (_, __) => {}
       )
     );
+    const files = await listFiles("./assets/" + zipFile);
+
+    if(Object.keys(manifest).length == 0) return t.fail("manifest was empty")
 
     for (const [filename, data] of Object.entries(manifest)) {
       let start = 0;

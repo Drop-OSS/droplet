@@ -3,6 +3,7 @@
 #![deny(clippy::panic)]
 #![feature(trait_alias)]
 #![feature(iterator_try_collect)]
+#![feature(int_roundings)]
 
 
 pub mod manifest;
