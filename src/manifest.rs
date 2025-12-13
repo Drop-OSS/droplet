@@ -55,6 +55,23 @@ pub async fn generate_manifest(
   progress_sfn: ThreadsafeFunction<f32>,
   log_sfn: ThreadsafeFunction<String>,
 ) -> anyhow::Result<String> {
+  generate_manifest_rusty(
+    dir,
+    |progress| {
+      progress_sfn.call(Ok(progress), ThreadsafeFunctionCallMode::Blocking);
+    },
+    |logline| {
+      log_sfn.call(Ok(logline), ThreadsafeFunctionCallMode::Blocking);
+    },
+  )
+  .await
+}
+
+pub async fn generate_manifest_rusty<T: Fn(String) -> (), V: Fn(f32) -> ()>(
+  dir: String,
+  progress_sfn: V,
+  log_sfn: T,
+) -> anyhow::Result<String> {
   let mut backend = create_backend_for_path(dir).ok_or(napi::Error::from_reason(
     "Could not create backend for path.",
   ))?;
@@ -66,10 +83,7 @@ pub async fn generate_manifest(
   let mut chunks: Vec<Vec<(VersionFile, u64, u64)>> = Vec::new();
   let mut current_chunk: Vec<(VersionFile, u64, u64)> = Vec::new();
 
-  log_sfn.call(
-    Ok(format!("organizing files into chunks...",)),
-    ThreadsafeFunctionCallMode::NonBlocking,
-  );
+  log_sfn(format!("organizing files into chunks...",));
 
   for version_file in files {
     //    let mut reader = backend.reader(&version_file, 0, 0).await?;
@@ -140,13 +154,10 @@ pub async fn generate_manifest(
     chunks.push(current_chunk);
   }
 
-  log_sfn.call(
-    Ok(format!(
-      "organized into {} chunks, generating checksums...",
-      chunks.len()
-    )),
-    ThreadsafeFunctionCallMode::Blocking,
-  );
+  log_sfn(format!(
+    "organized into {} chunks, generating checksums...",
+    chunks.len()
+  ));
 
   let mut manifest: HashMap<String, ChunkData> = HashMap::new();
   let mut total_manifest_length = 0;
@@ -166,16 +177,13 @@ pub async fn generate_manifest(
     let mut chunk_length = 0;
 
     for (file, start, length) in chunk {
-      log_sfn.call(
-        Ok(format!(
-          "reading {} from {} to {}, {}",
-          file.relative_filename,
-          start,
-          start + length,
-          format_size(length, BINARY)
-        )),
-        ThreadsafeFunctionCallMode::Blocking,
-      );
+      log_sfn(format!(
+        "reading {} from {} to {}, {}",
+        file.relative_filename,
+        start,
+        start + length,
+        format_size(length, BINARY)
+      ));
       let mut reader = backend.reader(&file, start, start + length).await?;
 
       loop {
@@ -196,15 +204,12 @@ pub async fn generate_manifest(
       });
     }
 
-    log_sfn.call(
-      Ok(format!(
-        "created chunk of size {} ({}/{})",
-        format_size(chunk_length, BINARY),
-        index,
-        chunk_len
-      )),
-      ThreadsafeFunctionCallMode::Blocking,
-    );
+    log_sfn(format!(
+      "created chunk of size {} ({}/{})",
+      format_size(chunk_length, BINARY),
+      index,
+      chunk_len
+    ));
     total_manifest_length += chunk_length;
 
     let hash: String = hasher.finalize().encode_hex();
@@ -212,7 +217,7 @@ pub async fn generate_manifest(
     manifest.insert(uuid, chunk_data);
 
     let progress: f32 = (index as f32 / chunk_len as f32) * 100.0f32;
-    progress_sfn.call(Ok(progress), ThreadsafeFunctionCallMode::Blocking);
+    progress_sfn(progress);
   }
 
   Ok(
