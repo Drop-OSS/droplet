@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, thread};
 
+use anyhow::anyhow;
 use droplet_rs::versions::types::VersionFile;
 use hashing_reader::HashingReader;
 use hex::ToHex;
@@ -72,13 +73,12 @@ pub async fn generate_manifest_rusty<T: Fn(String) -> (), V: Fn(f32) -> ()>(
   progress_sfn: V,
   log_sfn: T,
 ) -> anyhow::Result<String> {
-  let mut backend = create_backend_for_path(dir).ok_or(napi::Error::from_reason(
-    "Could not create backend for path.",
-  ))?;
+  let mut backend =
+    create_backend_for_path(dir).ok_or(anyhow!("Could not create backend for path."))?;
 
   let required_single_file = true; //backend.require_whole_files();
 
-  let mut files = backend.list_files().await?;
+  let files = backend.list_files().await?;
   // Filepath to chunk data
   let mut chunks: Vec<Vec<(VersionFile, u64, u64)>> = Vec::new();
   let mut current_chunk: Vec<(VersionFile, u64, u64)> = Vec::new();
@@ -86,8 +86,6 @@ pub async fn generate_manifest_rusty<T: Fn(String) -> (), V: Fn(f32) -> ()>(
   log_sfn(format!("organizing files into chunks...",));
 
   for version_file in files {
-    //    let mut reader = backend.reader(&version_file, 0, 0).await?;
-
     // If we need the whole file, and this file would take up a whole chunk, add it to it's own chunk and move on
     if required_single_file && version_file.size >= CHUNK_SIZE {
       let size = version_file.size;
