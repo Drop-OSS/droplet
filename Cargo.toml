@@ -1,9 +1,10 @@
 [package]
 edition = "2021"
 name = "droplet"
-version = "0.3.5"
+version = "0.3.6"
 license = "AGPL-3.0-only"
 description = "Droplet is a `napi.rs` Rust/Node.js package full of high-performance and low-level utils for Drop"
+
 [lib]
 crate-type = ["cdylib"]
 
