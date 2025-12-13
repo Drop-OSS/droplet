@@ -505,18 +505,23 @@ dependencies = [
 
 [[package]]
 name = "droplet-rs"
-version = "0.9.2"
-source = "git+https://github.com/Drop-OSS/droplet-rs.git#d8f37886d479d8d9fec7e51523628e863306dddb"
+version = "0.10.0"
+source = "git+https://github.com/Drop-OSS/droplet-rs.git#d7ac90eb2a25544868c8e447d8438f97111c8947"
 dependencies = [
  "anyhow",
  "async-trait",
  "dyn-clone",
  "hex",
+ "humansize",
  "rcgen",
  "ring",
+ "serde",
+ "serde_json",
+ "sha2",
  "time",
  "time-macros",
  "tokio",
+ "uuid",
  "webpki",
  "x509-parser 0.17.0",
 ]
