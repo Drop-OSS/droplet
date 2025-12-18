@@ -1,9 +1,6 @@
-use std::{
-  collections::HashMap,
-  fs::File,
-  path::Path,
-  process::{Command, ExitStatus},
-};
+use std::
+  path::Path
+;
 
 use anyhow::anyhow;
 use droplet_rs::versions::{
@@ -12,11 +9,9 @@ use droplet_rs::versions::{
 };
 use napi::{
   bindgen_prelude::*,
-  sys::napi_value__,
-  tokio_stream::{wrappers::ReceiverStream, StreamExt},
+  tokio_stream::wrappers::ReceiverStream,
 };
 use tokio::io::{AsyncReadExt, BufReader};
-use tokio_util::codec::{BytesCodec, FramedRead};
 
 pub fn create_backend_for_path(path: String) -> Option<Box<dyn VersionBackend + Send>> {
   let fs_path = Path::new(&path);
