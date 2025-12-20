@@ -497,8 +497,8 @@ dependencies = [
 
 [[package]]
 name = "droplet-rs"
-version = "0.13.0"
-source = "git+https://github.com/Drop-OSS/droplet-rs.git#6f9411fa1725b75d08244cfe74de591190430ba4"
+version = "0.14.0"
+source = "git+https://github.com/Drop-OSS/droplet-rs.git#9f23190ba2c6eebc5c62218cf762392d15770d9f"
 dependencies = [
  "anyhow",
  "async-trait",
